@@ -1828,7 +1828,7 @@ describe("httpApiV1 handlers", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.version.security.status).toBe("pending");
-    expect(json.version.security.scanners.vt.normalizedStatus).toBe("suspicious");
+    expect(json.version.security.scanners.vt.normalizedStatus).toBe("review");
     expect(json.version.security.virustotalUrl).toContain("virustotal.com/gui/file/");
   });
 
@@ -1880,12 +1880,12 @@ describe("httpApiV1 handlers", () => {
     expect(json.version.security.status).toBe("clean");
     expect(json.version.security.hasWarnings).toBe(false);
     expect(json.version.security.hasScanResult).toBe(true);
-    expect(json.version.security.scanners.static.normalizedStatus).toBe("pending");
+    expect(json.version.security.scanners.static.normalizedStatus).toBe("review");
     expect(json.version.security.scanners.vt.normalizedStatus).toBe("clean");
     expect(json.version.security.scanners.llm.normalizedStatus).toBe("clean");
   });
 
-  it("lets static-scan malicious status dominate benign vt and llm results", async () => {
+  it("keeps static-scan malicious status advisory when ClawScan is clean", async () => {
     const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
       if ("slug" in args) {
         return {
@@ -1918,6 +1918,90 @@ describe("httpApiV1 handlers", () => {
             verdict: "benign",
             checkedAt: 222,
           },
+          clawScanVerdict: "clean",
+          clawScanState: "complete",
+          files: [],
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/skills/demo/versions/1.0.0"),
+    );
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.version.security.status).toBe("clean");
+    expect(json.version.security.hasWarnings).toBe(false);
+    expect(json.version.security.hasScanResult).toBe(true);
+    expect(json.version.security.checkedAt).toBe(555);
+    expect(json.version.security.scanners.static.normalizedStatus).toBe("malicious");
+  });
+
+  it("reports pending ClawScan state over stale completed scanner details", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("slug" in args) {
+        return {
+          skill: { _id: "skills:1", slug: "demo", displayName: "Demo" },
+          latestVersion: null,
+          owner: { handle: "owner", displayName: "Owner", image: null },
+        };
+      }
+      if ("skillId" in args && "version" in args) {
+        return {
+          version: "1.0.0",
+          createdAt: 1,
+          changelog: "c",
+          changelogSource: "auto",
+          sha256hash: "a".repeat(64),
+          clawScanVerdict: "clean",
+          clawScanState: "running",
+          llmAnalysis: {
+            status: "completed",
+            verdict: "benign",
+            checkedAt: 222,
+          },
+          files: [],
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/skills/demo/versions/1.0.0"),
+    );
+    expect(response.status).toBe(200);
+    const json = await response.json();
+    expect(json.version.security.status).toBe("pending");
+    expect(json.version.security.hasScanResult).toBe(false);
+    expect(json.version.security.scanners.llm.normalizedStatus).toBe("clean");
+  });
+
+  it("keeps malicious ClawScan verdict authoritative during rescans", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("slug" in args) {
+        return {
+          skill: { _id: "skills:1", slug: "demo", displayName: "Demo" },
+          latestVersion: null,
+          owner: { handle: "owner", displayName: "Owner", image: null },
+        };
+      }
+      if ("skillId" in args && "version" in args) {
+        return {
+          version: "1.0.0",
+          createdAt: 1,
+          changelog: "c",
+          changelogSource: "auto",
+          sha256hash: "a".repeat(64),
+          clawScanVerdict: "malicious",
+          clawScanState: "running",
+          llmAnalysis: {
+            status: "malicious",
+            verdict: "malicious",
+            checkedAt: 222,
+          },
           files: [],
         };
       }
@@ -1933,8 +2017,6 @@ describe("httpApiV1 handlers", () => {
     expect(json.version.security.status).toBe("malicious");
     expect(json.version.security.hasWarnings).toBe(true);
     expect(json.version.security.hasScanResult).toBe(true);
-    expect(json.version.security.checkedAt).toBe(555);
-    expect(json.version.security.scanners.static.normalizedStatus).toBe("malicious");
   });
 
   it("does not treat a static scan by itself as a definitive scan result", async () => {
@@ -1975,7 +2057,7 @@ describe("httpApiV1 handlers", () => {
     expect(json.version.security.hasWarnings).toBe(false);
     expect(json.version.security.hasScanResult).toBe(false);
     expect(json.version.security.virustotalUrl).toBeNull();
-    expect(json.version.security.scanners.static.normalizedStatus).toBe("pending");
+    expect(json.version.security.scanners.static.normalizedStatus).toBe("clean");
     expect(json.version.security.scanners.vt).toBeNull();
     expect(json.version.security.scanners.llm).toBeNull();
   });
@@ -2078,7 +2160,7 @@ describe("httpApiV1 handlers", () => {
     );
     expect(response.status).toBe(200);
     const json = await response.json();
-    expect(json.security.status).toBe("suspicious");
+    expect(json.security.status).toBe("review");
     expect(json.security.hasScanResult).toBe(true);
     expect(json.security.capabilityTags).toEqual([
       "crypto",
@@ -2311,7 +2393,7 @@ describe("httpApiV1 handlers", () => {
     expect(response.status).toBe(200);
     const json = await response.json();
     expect(json.version.version).toBe("1.0.0");
-    expect(json.security.status).toBe("suspicious");
+    expect(json.security.status).toBe("review");
     expect(json.moderation.scope).toBe("skill");
     expect(json.moderation.sourceVersion).toEqual({
       version: "2.0.0",
@@ -5355,6 +5437,8 @@ describe("httpApiV1 handlers", () => {
     {
       name: "malicious",
       release: {
+        clawScanVerdict: "malicious",
+        clawScanState: "complete",
         staticScan: {
           status: "malicious",
           reasonCodes: ["malicious.test"],
@@ -7156,6 +7240,8 @@ describe("httpApiV1 handlers", () => {
           version: "1.0.0",
           createdAt: 1,
           changelog: "init",
+          clawScanVerdict: "malicious",
+          clawScanState: "complete",
           verification: { scanStatus: "malicious" },
           files: [
             {

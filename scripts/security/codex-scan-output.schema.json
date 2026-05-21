@@ -13,7 +13,7 @@
     "incomplete_artifact_inspection"
   ],
   "properties": {
-    "verdict": { "type": "string", "enum": ["benign", "suspicious", "malicious"] },
+    "verdict": { "type": "string", "enum": ["clean", "review", "warn", "malicious"] },
     "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
     "summary": { "type": "string" },
     "dimensions": {

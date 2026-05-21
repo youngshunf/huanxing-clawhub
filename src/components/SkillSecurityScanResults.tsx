@@ -209,13 +209,9 @@ function highestVisibleFindingSeverityRank(analysis?: LlmAnalysis | null) {
 export function getClawScanDisplayStatus(analysis?: LlmAnalysis | null) {
   const status = (analysis?.verdict ?? analysis?.status)?.trim().toLowerCase();
   if (!status) return "pending";
-  const highestSeverity = highestVisibleFindingSeverityRank(analysis);
-  if (status === "suspicious") {
-    return highestSeverity >= severityRank("high") ? "warn" : "review";
-  }
-  if ((status === "clean" || status === "benign") && highestSeverity >= severityRank("medium")) {
-    return "review";
-  }
+  if (status === "benign") return "clean";
+  if (status === "suspicious") return "review";
+  if (status === "warning") return "warn";
   return status;
 }
 
@@ -490,9 +486,15 @@ export function ClawScanRiskReview({
 function LlmAnalysisDetail({ analysis }: { analysis: LlmAnalysis }) {
   const verdict = analysis.verdict ?? analysis.status;
   const [isOpen, setIsOpen] = useState(false);
+  const normalizedVerdict = verdict.trim().toLowerCase();
+  const reviewVerdicts = new Set(["review", "warn", "warning", "suspicious"]);
 
   const guidanceClass =
-    verdict === "malicious" ? "malicious" : verdict === "suspicious" ? "suspicious" : "benign";
+    normalizedVerdict === "malicious"
+      ? "malicious"
+      : reviewVerdicts.has(normalizedVerdict)
+        ? "suspicious"
+        : "benign";
 
   return (
     <div className={`analysis-detail${isOpen ? " is-open" : ""}`}>
@@ -549,9 +551,9 @@ function LlmAnalysisDetail({ analysis }: { analysis: LlmAnalysis }) {
         {analysis.guidance ? (
           <div className={`analysis-guidance ${guidanceClass}`}>
             <div className="analysis-guidance-label">
-              {verdict === "malicious"
+              {normalizedVerdict === "malicious"
                 ? "Do not install this skill"
-                : verdict === "suspicious"
+                : reviewVerdicts.has(normalizedVerdict)
                   ? "Review before installing"
                   : "Assessment"}
             </div>

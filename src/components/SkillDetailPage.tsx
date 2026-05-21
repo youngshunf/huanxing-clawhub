@@ -597,6 +597,8 @@ export function SkillDetailPage({
       auditHref={`/${encodeURIComponent(ownerParam ?? ownerHandle ?? "unknown")}/${encodeURIComponent(
         skill.slug,
       )}/security-audit`}
+      clawScanVerdict={latestVersion.clawScanVerdict ?? null}
+      clawScanState={latestVersion.clawScanState ?? null}
       vtAnalysis={latestVersion.vtAnalysis ?? null}
       llmAnalysis={latestVersion.llmAnalysis ?? null}
       staticScan={latestVersion.staticScan ?? null}

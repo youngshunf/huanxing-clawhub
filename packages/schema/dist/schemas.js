@@ -325,6 +325,15 @@ export const ApiV1SkillAppealResolveResponseSchema = type({
     status: SkillAppealStatusSchema,
     actionTaken: SkillAppealFinalActionSchema.optional(),
 });
+export const ApiV1SkillRescanResponseSchema = type({
+    ok: "true",
+    slug: "string",
+    version: "string",
+    skillId: "string",
+    skillVersionId: "string",
+    jobId: "string",
+    alreadyQueued: "boolean",
+});
 export const ApiV1SkillVersionListResponseSchema = type({
     items: type({
         version: "string",
@@ -335,7 +344,7 @@ export const ApiV1SkillVersionListResponseSchema = type({
     nextCursor: "string|null",
 });
 export const SecurityStatusSchema = type({
-    status: '"clean" | "suspicious" | "malicious" | "pending" | "error"',
+    status: '"clean" | "review" | "warn" | "suspicious" | "malicious" | "pending" | "error"',
     hasWarnings: "boolean",
     checkedAt: "number|null",
     model: "string|null",

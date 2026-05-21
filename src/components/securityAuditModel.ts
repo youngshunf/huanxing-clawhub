@@ -21,6 +21,8 @@ export type StaticScanAnalysis = {
 };
 
 type SecurityAuditSignals = {
+  clawScanVerdict?: string | null;
+  clawScanState?: string | null;
   vtAnalysis?: VtAnalysis | null;
   llmAnalysis?: LlmAnalysis | null;
   staticScan?: StaticScanAnalysis | null;
@@ -48,43 +50,60 @@ function getStaticScanDisplayStatus(staticScan?: StaticScanAnalysis | null) {
   return "pending";
 }
 
+function getClawScanAuditStatus(signals: SecurityAuditSignals) {
+  const verdict = signals.clawScanVerdict?.trim().toLowerCase();
+  if (verdict === "benign") return "clean";
+  if (verdict === "suspicious") return "review";
+  if (verdict === "warning") return "warn";
+  if (verdict === "malicious") return "malicious";
+
+  const state = signals.clawScanState?.trim().toLowerCase();
+  if (state === "pending" || state === "running") return "pending";
+  if (state === "error") return "error";
+  if (verdict) return verdict;
+
+  return getClawScanDisplayStatus(signals.llmAnalysis);
+}
+
 export function getAuditScannerStatus(kind: AuditScannerKind, signals: SecurityAuditSignals) {
   if (signals.suppressScanResults) return "cleared";
-  if (kind === "clawscan") return getClawScanDisplayStatus(signals.llmAnalysis);
+  if (kind === "clawscan") return getClawScanAuditStatus(signals);
   if (kind === "virustotal") return getVirusTotalDisplayStatus(signals.vtAnalysis);
   return getStaticScanDisplayStatus(signals.staticScan);
 }
 
 export function aggregateAuditVerdict(signals: SecurityAuditSignals) {
-  const statuses = DEFAULT_AUDIT_SCANNER_ORDER.map((kind) => getAuditScannerStatus(kind, signals));
-  const normalized = statuses.map((status) => status.toLowerCase());
-  if (normalized.some((status) => status === "malicious")) return "malicious";
-  if (normalized.some((status) => status === "warn" || status === "warning")) return "warn";
-  if (normalized.some((status) => status === "suspicious")) return "warn";
-  if (normalized.some((status) => status === "review")) return "review";
-  if (normalized.some((status) => status === "error" || status === "failed")) return "error";
-  if (
-    normalized.some(
-      (status) => status === "pending" || status === "loading" || status === "not_found",
-    )
-  ) {
-    return "pending";
-  }
-  return signals.suppressScanResults ? "cleared" : "benign";
+  if (signals.suppressScanResults) return "cleared";
+  return getAuditScannerStatus("clawscan", signals);
 }
 
 export function getSecurityAuditOverviewCopy({
   llmAnalysis,
+  clawScanVerdict,
+  clawScanState,
   suppressScanResults,
   suppressedMessage,
 }: {
   llmAnalysis?: LlmAnalysis | null;
+  clawScanVerdict?: string | null;
+  clawScanState?: string | null;
   suppressScanResults?: boolean;
   suppressedMessage?: string | null;
 }) {
   if (suppressScanResults && suppressedMessage?.trim()) return [suppressedMessage.trim()];
+  const verdict = clawScanVerdict?.trim().toLowerCase();
+  if (verdict === "malicious") {
+    return [
+      llmAnalysis?.summary?.trim() || "Risk analysis flagged this release as malicious.",
+      llmAnalysis?.guidance?.trim() || null,
+    ].filter((copy): copy is string => Boolean(copy));
+  }
+  const state = clawScanState?.trim().toLowerCase();
+  if (state === "pending" || state === "running") return ["Risk analysis is pending."];
+  if (state === "error") return ["Risk analysis could not be completed for this release."];
+  if (!llmAnalysis) return ["Risk analysis is pending."];
   return [
-    llmAnalysis?.summary?.trim() || "No risk analysis has been recorded yet.",
+    llmAnalysis.summary?.trim() || "No risk analysis has been recorded yet.",
     llmAnalysis?.guidance?.trim() || null,
   ].filter((copy): copy is string => Boolean(copy));
 }

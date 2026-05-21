@@ -183,11 +183,15 @@ export function packageOpenClawEnvironmentForPrompt(packageJson: unknown): JsonR
 function verdictToStatus(verdict: string): string {
   switch (verdict) {
     case "benign":
+    case "clean":
       return "clean";
+    case "review":
+    case "warn":
+      return verdict;
     case "malicious":
       return "malicious";
     case "suspicious":
-      return "suspicious";
+      return "review";
     default:
       return "pending";
   }

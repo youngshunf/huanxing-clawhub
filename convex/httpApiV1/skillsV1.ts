@@ -11,6 +11,7 @@ import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx } from "../_generated/server";
 import { getOptionalApiTokenUserId, requireApiTokenUser } from "../lib/apiTokenAuth";
+import { normalizeClawScanVerdict, type ClawScanState } from "../lib/clawScanVerdict";
 import { applyRateLimit } from "../lib/httpRateLimit";
 import { parseBooleanQueryParam, resolveBooleanQueryParam } from "../lib/httpUtils";
 import type {
@@ -106,6 +107,8 @@ type PublicSkillVersionResponse = {
   parsed?: PublicSkillVersionParsed;
   softDeletedAt?: number;
   sha256hash?: string;
+  clawScanVerdict?: Doc<"skillVersions">["clawScanVerdict"];
+  clawScanState?: Doc<"skillVersions">["clawScanState"];
   vtAnalysis?: Doc<"skillVersions">["vtAnalysis"];
   llmAnalysis?: Doc<"skillVersions">["llmAnalysis"];
   staticScan?: PublicSkillVersionStaticScan;
@@ -208,7 +211,14 @@ function normalizeModerationFromSkill(skill: SkillModerationShape) {
   };
 }
 
-type NormalizedSecurityStatus = "clean" | "suspicious" | "malicious" | "pending" | "error";
+type NormalizedSecurityStatus =
+  | "clean"
+  | "review"
+  | "warn"
+  | "suspicious"
+  | "malicious"
+  | "pending"
+  | "error";
 
 type SkillSecuritySnapshot = {
   status: NormalizedSecurityStatus;
@@ -277,17 +287,15 @@ async function runMutationRef<T>(ctx: ActionCtx, ref: unknown, args: unknown): P
 
 function isDefinitiveSecurityStatus(
   status: NormalizedSecurityStatus | null | undefined,
-): status is "clean" | "suspicious" | "malicious" {
-  return status === "clean" || status === "suspicious" || status === "malicious";
+): status is "clean" | "review" | "warn" | "suspicious" | "malicious" {
+  return (
+    status === "clean" ||
+    status === "review" ||
+    status === "warn" ||
+    status === "suspicious" ||
+    status === "malicious"
+  );
 }
-
-const SECURITY_STATUS_PRIORITY: Record<NormalizedSecurityStatus, number> = {
-  clean: 0,
-  error: 1,
-  pending: 2,
-  suspicious: 3,
-  malicious: 4,
-};
 
 function normalizeSecurityStatus(value: string | null | undefined): NormalizedSecurityStatus {
   const normalized = value?.trim().toLowerCase();
@@ -295,8 +303,13 @@ function normalizeSecurityStatus(value: string | null | undefined): NormalizedSe
     case "benign":
     case "clean":
       return "clean";
+    case "review":
+      return "review";
+    case "warn":
+    case "warning":
+      return "warn";
     case "suspicious":
-      return "suspicious";
+      return "review";
     case "malicious":
       return "malicious";
     case "error":
@@ -314,11 +327,17 @@ function normalizeSecurityStatus(value: string | null | undefined): NormalizedSe
   }
 }
 
-function mergeSecurityStatuses(statuses: NormalizedSecurityStatus[]) {
-  if (statuses.length === 0) return "pending" satisfies NormalizedSecurityStatus;
-  return statuses.reduce((current, candidate) =>
-    SECURITY_STATUS_PRIORITY[candidate] > SECURITY_STATUS_PRIORITY[current] ? candidate : current,
-  );
+function normalizeClawScanState(value: string | null | undefined): ClawScanState | null {
+  const normalized = value?.trim().toLowerCase();
+  if (
+    normalized === "pending" ||
+    normalized === "running" ||
+    normalized === "complete" ||
+    normalized === "error"
+  ) {
+    return normalized;
+  }
+  return null;
 }
 
 function hasLlmDimensionWarnings(dimensions: LlmEvalDimension[] | undefined) {
@@ -333,7 +352,13 @@ function hasLlmDimensionWarnings(dimensions: LlmEvalDimension[] | undefined) {
 function buildSkillSecuritySnapshot(
   version: Pick<
     PublicSkillVersionResponse,
-    "sha256hash" | "vtAnalysis" | "llmAnalysis" | "staticScan" | "capabilityTags"
+    | "sha256hash"
+    | "clawScanVerdict"
+    | "clawScanState"
+    | "vtAnalysis"
+    | "llmAnalysis"
+    | "staticScan"
+    | "capabilityTags"
   >,
 ): SkillSecuritySnapshot | null {
   const capabilityTags = version.capabilityTags ?? [];
@@ -344,22 +369,40 @@ function buildSkillSecuritySnapshot(
 
   if (!sha256hash && !vt && !llm && !staticScan && capabilityTags.length === 0) return null;
 
-  const staticStatus =
-    staticScan?.status?.trim().toLowerCase() === "malicious"
-      ? ("malicious" satisfies NormalizedSecurityStatus)
-      : null;
+  const staticStatus = staticScan ? normalizeSecurityStatus(staticScan.status) : null;
   const vtStatus = vt ? normalizeSecurityStatus(vt.verdict ?? vt.status) : null;
   const llmStatus = llm ? normalizeSecurityStatus(llm.verdict ?? llm.status) : null;
+  const clawScanVerdict = normalizeClawScanVerdict(version.clawScanVerdict);
+  const clawScanStatus = clawScanVerdict
+    ? (clawScanVerdict satisfies NormalizedSecurityStatus)
+    : null;
+  const clawScanState = normalizeClawScanState(version.clawScanState);
 
-  const statuses: NormalizedSecurityStatus[] = [];
-  if (staticStatus) statuses.push(staticStatus);
-  if (llmStatus) statuses.push(llmStatus);
-  if (statuses.length === 0 && sha256hash) statuses.push("pending");
-  const status = mergeSecurityStatuses(statuses);
-  const hasScanResult =
-    isDefinitiveSecurityStatus(staticStatus) || isDefinitiveSecurityStatus(llmStatus);
+  let status: NormalizedSecurityStatus = "pending";
+  let hasScanResult = false;
+  if (clawScanStatus === "malicious") {
+    status = "malicious";
+    hasScanResult = true;
+  } else if (clawScanState === "pending" || clawScanState === "running") {
+    status = "pending";
+  } else if (clawScanState === "error") {
+    status = "error";
+  } else if (clawScanStatus) {
+    status = clawScanStatus;
+    hasScanResult = true;
+  } else if (clawScanState === "complete") {
+    status = isDefinitiveSecurityStatus(llmStatus) ? llmStatus : "error";
+    hasScanResult = isDefinitiveSecurityStatus(llmStatus);
+  } else if (llmStatus) {
+    status = llmStatus;
+    hasScanResult = isDefinitiveSecurityStatus(llmStatus);
+  }
   const hasWarnings =
-    status === "suspicious" || status === "malicious" || hasLlmDimensionWarnings(llm?.dimensions);
+    status === "review" ||
+    status === "warn" ||
+    status === "suspicious" ||
+    status === "malicious" ||
+    hasLlmDimensionWarnings(llm?.dimensions);
 
   const checkedAtCandidates = [staticScan?.checkedAt, vt?.checkedAt, llm?.checkedAt].filter(
     (value): value is number => typeof value === "number",

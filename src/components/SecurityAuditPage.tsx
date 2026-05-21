@@ -48,6 +48,8 @@ type EntityRef = {
 type SecurityAuditPageProps = {
   entity: EntityRef;
   sha256hash?: string | null;
+  clawScanVerdict?: string | null;
+  clawScanState?: string | null;
   vtAnalysis?: VtAnalysis | null;
   llmAnalysis?: LlmAnalysis | null;
   staticScan?: StaticScanAnalysis | null;
@@ -202,6 +204,13 @@ function getVirusTotalOverviewCopy(analysis: VtAnalysis | null | undefined, enti
   return getVirusTotalEngineOverview(analysis, entity) ?? getVirusTotalPendingCopy(entity);
 }
 
+function hasVirusTotalResult(analysis?: VtAnalysis | null) {
+  if (!analysis) return false;
+  const status = analysis.status?.trim().toLowerCase();
+  if (!status) return false;
+  return !["loading", "not_found", "not-found", "pending"].includes(status);
+}
+
 function isReviewStatus(status: string) {
   const normalized = status.trim().toLowerCase();
   return normalized === "review" || normalized === "warn" || normalized === "suspicious";
@@ -243,7 +252,11 @@ function PublisherNotePrompt({
 }
 
 function SecurityAuditOverview(props: SecurityAuditPageProps) {
-  const overviewCopy = getSecurityAuditOverviewCopy({ llmAnalysis: props.llmAnalysis });
+  const overviewCopy = getSecurityAuditOverviewCopy({
+    llmAnalysis: props.llmAnalysis,
+    clawScanVerdict: props.clawScanVerdict,
+    clawScanState: props.clawScanState,
+  });
   return (
     <section
       className="security-report-panel security-report-panel-compact"
@@ -266,11 +279,17 @@ function SecurityAuditOverview(props: SecurityAuditPageProps) {
 function ClawScanSection(props: SecurityAuditPageProps) {
   const riskAnalysis =
     props.llmAnalysis && hasClawScanRiskReview(props.llmAnalysis) ? props.llmAnalysis : null;
+  const clawScanStatus = getAuditScannerStatus("clawscan", props);
+  const clawScanPending = ["pending", "loading", "not_found", "not-found"].includes(
+    clawScanStatus.trim().toLowerCase(),
+  );
 
   return (
     <div className="security-report-panel-body security-report-panel-body-findings">
       {riskAnalysis ? (
         <ClawScanRiskReview analysis={riskAnalysis} showTitle={false} />
+      ) : clawScanPending ? (
+        <p className="security-audit-empty-detail">Risk analysis is pending for this release.</p>
       ) : (
         <p className="security-audit-empty-detail">
           No visible risk-analysis findings were reported for this release.
@@ -307,7 +326,10 @@ function PublisherNoteSection(props: SecurityAuditPageProps) {
 }
 
 function VirusTotalSection(props: SecurityAuditPageProps) {
-  const vtUrl = props.sha256hash ? `https://www.virustotal.com/gui/file/${props.sha256hash}` : null;
+  const vtUrl =
+    props.sha256hash && hasVirusTotalResult(props.vtAnalysis)
+      ? `https://www.virustotal.com/gui/file/${props.sha256hash}`
+      : null;
   return (
     <div className="security-report-panel-body">
       <div className="security-report-overview-body">
@@ -545,6 +567,7 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
   const latestCheckedAt = getLatestAuditCheckedAt(props);
   const clawScanRiskLevel = getClawScanRiskLevel(props.llmAnalysis);
   const verdict = aggregateAuditVerdict(props);
+  const outcomeLabel = verdict === "clean" || verdict === "benign" ? "Clean" : undefined;
 
   return (
     <SidebarMetadata
@@ -553,7 +576,7 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
       blocks={[
         {
           label: "Outcome",
-          value: <ScanResultBadge status={verdict} />,
+          value: <ScanResultBadge status={verdict} label={outcomeLabel} />,
         },
         {
           label: "Risk",

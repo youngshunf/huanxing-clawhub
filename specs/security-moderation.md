@@ -61,15 +61,16 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
   releases. OpenClaw must use it instead of re-deriving blocking behavior from
   individual scan or moderation fields. `trust.reasons` is the compact user and
   audit explanation list, for example `manual:quarantined`, `scan:malicious`,
-  `static:malicious`, `vt:suspicious`, or `package:malicious`; public trust
-  responses must not expose open report counts.
+  `static:malicious`, or `package:malicious`; public trust responses must not
+  expose open report counts.
 - The legacy skill/package appeal tables and backend routes remain for
   compatibility, but the first-class CLI and docs surface is deprecated.
   Publisher recovery for false positives should use reports or out-of-band
   support, while account bans require out-of-band support.
-- Any scanner path that determines a skill is malicious must hide the skill and
-  schedule the same account-level autoban/token-revocation workflow. Static
-  scan malicious findings must not diverge into a softer moderation-only state.
+- ClawScan `malicious` is the only automatic scanner verdict that hides,
+  blocks installs, or schedules the account-level autoban/token-revocation
+  workflow. Static scan and VirusTotal findings are telemetry and ClawScan
+  inputs; they must not independently hide, block, or auto-ban.
 - Pending skill ownership transfers must not be accepted when the requesting
   owner is deleted/deactivated or when the skill is malicious, hidden, or
   removed. The accept path is the final shared gate before ownership changes,
@@ -96,14 +97,16 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
   moderator-only queries and unhide/restore/delete/ban.
 - Legacy report rows with `status: "triaged"` are read as `confirmed` for
   compatibility while new writes store `confirmed`.
-- Skills directory supports an optional "Hide suspicious" filter to exclude
-  active-but-flagged (`flagged.suspicious`) entries from browse/search results.
+- The legacy "Hide suspicious" browse/search filter and `isSuspicious` field
+  are deprecated compatibility surfaces. Suspicious/review/warn guidance no
+  longer creates an allowed-but-hidden product state.
 
 ## Skill moderation pipeline
 
 - New skill publishes now persist a deterministic static scan result on the version.
-- Static suspicious findings are advisory evidence only. Static malicious findings
-  hold the artifact until Codex-backed ClawScan completes.
+- Static suspicious and malicious findings are advisory evidence and ClawScan
+  inputs only. They do not hide or block an artifact unless ClawScan returns
+  `malicious` or a manual moderation state applies.
 - Public artifact pages present static analysis, VirusTotal malware telemetry,
   and ClawScan-powered risk review as one consolidated Security audit page.
   This is a product-facing model only; scanner storage, moderation decisions,
@@ -112,10 +115,17 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
   hosted LLM call. Publishes enqueue a scan job that waits at most 10 minutes
   for VirusTotal telemetry, then Codex reviews the materialized artifact
   workspace with static and VT signals as context.
-- ClawScan verdicts treat purpose-aligned notes as user guidance, not a
-  suspicious verdict. Medium-only material concerns are visible
-  `flagged.review` guidance and must not set `isSuspicious`; high or critical
-  concerns remain `flagged.suspicious` and are hidden by the suspicious filter.
+- ClawScan writes the canonical scanner fields on skill versions and
+  package/plugin releases:
+  - `clawScanVerdict`: `clean | review | warn | malicious`
+  - `clawScanState`: `pending | running | complete | error`
+- `clawScanVerdict` is the source of truth for automatic scanner moderation and
+  for the Security audit Outcome. `clean`, `review`, and `warn` remain
+  visible/installable guidance states. Only `malicious` blocks visibility or
+  install automatically.
+- Manual moderation still wins over scanner results. A manually hidden,
+  quarantined, revoked, removed, banned, or otherwise locked artifact must stay
+  blocked even if ClawScan later returns `clean`.
 - VirusTotal is telemetry only. It is included in the Codex workspace as signal,
   but VT alone must never hide, block, or set malicious/suspicious public status.
   The public Security audit UI may summarize vendor engine counts, including
@@ -131,14 +141,14 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
 - Prompt-injection pre-scan hits are also context for Codex, not a deterministic
   post-Codex veto. The release worker must not downgrade a benign Codex verdict
   solely from regex telemetry.
-- Artifacts without non-VT malicious indications are visible immediately while
-  Codex runs. Artifacts with non-VT malicious indications stay hidden/blocked
-  until Codex returns; Codex malicious verdicts hide/block.
+- Pending/running/error ClawScan state is explicit in the UI and API but does
+  not block visibility or install unless a manual moderation or unrelated
+  availability gate also applies.
 - Plugins under `@openclaw/*` owned by the OpenClaw publisher are trusted by
   default. They may still be audited, but scanner telemetry alone must not
   downgrade them.
-- Operators can schedule targeted ClawScan rescans for suspicious skills by bucket
-  (`all`, `llm-only`, `vt-only`, `both`) and for suspicious plugin releases.
+- Operators can schedule targeted ClawScan rescans for skills and plugin
+  releases without depending on legacy suspicious buckets.
 - Package/plugin scan backfills now also recompute deterministic static scan results for older releases,
   so legacy plugin versions can surface OpenClaw scan findings without republishing.
 - ClawPack package releases keep static/LLM scan inputs intentionally metadata-only for now:
@@ -149,15 +159,14 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
   ClawHub does not request or consume VirusTotal AI/code-insight results; VT is
   engine/vendor telemetry only.
 - Skill moderation state stores a structured snapshot:
-  - `moderationVerdict`: `clean | suspicious | malicious`
+  - `moderationVerdict`: `clean | malicious` for scanner-managed decisions
   - `moderationReasonCodes[]`: canonical machine-readable reasons
   - `moderationEvidence[]`: capped file/line evidence for static findings
   - `moderationSummary`, engine version, evaluation timestamp, source version id
 - Structured moderation is rebuilt from current signals instead of appending stale scanner codes.
-- Legacy moderation flags remain in sync for existing public visibility and suspicious-skill filtering:
-  - `flagged.review`: visible review guidance, not hidden by default.
-  - `flagged.suspicious`: hidden by the suspicious filter.
-  - `blocked.malware`: hidden/blocked malicious state.
+- Legacy moderation flags remain only during migration compatibility and should
+  not be used as product logic for review/warn guidance. `blocked.malware`
+  remains the legacy compatibility flag for hidden/blocked malicious state.
 - Operators can force-rebuild skill moderation from the latest version to clear stale aggregate rows
   after ClawScan policy changes. Conservative cleanup may soft-hide exact test/placeholder
   suspicious skills, but broad duplicate-looking families require separate human review.

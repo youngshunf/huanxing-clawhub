@@ -4,8 +4,8 @@ import { SecurityAuditPage } from "./SecurityAuditPage";
 import { SecurityScanResults, type LlmAnalysis } from "./SkillSecurityScanResults";
 
 const clawScanAnalysis: LlmAnalysis = {
-  status: "suspicious",
-  verdict: "suspicious",
+  status: "warn",
+  verdict: "warn",
   confidence: "high",
   summary: "Collects workspace secrets and sends them to an unrelated endpoint.",
   checkedAt: Date.now(),
@@ -266,7 +266,7 @@ describe("SecurityScanResults static guidance", () => {
     expect(screen.getByText("Low")).toBeTruthy();
   });
 
-  it("promotes clean ClawScan scans with medium-or-higher visible findings to review", () => {
+  it("keeps clean ClawScan scans clean even with medium-or-higher visible findings", () => {
     render(
       <SecurityScanResults
         llmAnalysis={{
@@ -295,9 +295,9 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("Review")).toBeTruthy();
+    expect(screen.getAllByText("Pass").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Pass")).toBeNull();
+    expect(screen.queryByText("Review")).toBeNull();
   });
 
   it("shows review and medium risk for medium-severity ClawScan findings", () => {
@@ -374,6 +374,25 @@ describe("SecurityScanResults static guidance", () => {
     expect(screen.getByText("Purpose & Capability")).toBeTruthy();
     expect(screen.getByText("No mismatch found.")).toBeTruthy();
     expect(screen.queryByText("Findings")).toBeNull();
+  });
+
+  it("labels canonical review guidance as review-before-installing", () => {
+    render(
+      <SecurityScanResults
+        llmAnalysis={{
+          status: "review",
+          verdict: "review",
+          summary: "The skill needs context before install.",
+          checkedAt: Date.now(),
+          guidance: "Review the network permissions before installing.",
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /needs context/i }));
+
+    expect(screen.getByText("Review before installing")).toBeTruthy();
+    expect(screen.getByText("Review the network permissions before installing.")).toBeTruthy();
   });
 
   it("shows ClawScan buckets on the dedicated security audit page", () => {
@@ -472,6 +491,57 @@ describe("SecurityScanResults static guidance", () => {
     ).toBeTruthy();
   });
 
+  it("shows pending audit outcome while a ClawScan rescan is active", () => {
+    render(
+      <SecurityAuditPage
+        entity={{
+          kind: "skill",
+          title: "Todo Guard",
+          name: "todo-guard",
+          version: "1.0.0",
+          detailPath: "/local/todo-guard",
+        }}
+        clawScanVerdict="clean"
+        clawScanState="pending"
+        llmAnalysis={{
+          status: "clean",
+          verdict: "clean",
+          checkedAt: 1,
+          summary: "Previous clean result.",
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
+    expect(screen.getByText("Risk analysis is pending.")).toBeTruthy();
+    expect(screen.queryByText("Clean")).toBeNull();
+  });
+
+  it("keeps malicious audit outcome authoritative while a ClawScan rescan is active", () => {
+    render(
+      <SecurityAuditPage
+        entity={{
+          kind: "skill",
+          title: "Todo Guard",
+          name: "todo-guard",
+          version: "1.0.0",
+          detailPath: "/local/todo-guard",
+        }}
+        clawScanVerdict="malicious"
+        clawScanState="pending"
+        llmAnalysis={{
+          status: "malicious",
+          verdict: "malicious",
+          checkedAt: 1,
+          summary: "Previous malicious result.",
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("Malicious").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Risk analysis is pending.")).toBeNull();
+  });
+
   it("prompts publishers to add a note on review ClawScan reports without one", () => {
     render(
       <SecurityAuditPage
@@ -529,6 +599,7 @@ describe("SecurityScanResults static guidance", () => {
         }}
         sha256hash="seeded-plugin-hash"
         llmAnalysis={clawScanAnalysis}
+        vtAnalysis={{ status: "clean", checkedAt: 1 }}
       />,
     );
 
@@ -727,7 +798,7 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "VirusTotal" })).toBeTruthy();
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("Clean")).toBeTruthy();
     expect(screen.getByText("No VirusTotal findings")).toBeTruthy();
     expect(screen.queryByText("undetected-only-fallback")).toBeNull();
   });
@@ -900,7 +971,8 @@ describe("SecurityScanResults static guidance", () => {
       ),
     ).toBeTruthy();
     expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
-    expect(screen.getByText("No risk analysis has been recorded yet.")).toBeTruthy();
+    expect(screen.getAllByText("Risk analysis is pending.").length).toBeGreaterThan(0);
+    expect(screen.getByText("Risk analysis is pending for this release.")).toBeTruthy();
     expect(
       screen.getByText("VirusTotal findings are pending for this skill version."),
     ).toBeTruthy();

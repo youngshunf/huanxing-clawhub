@@ -62,7 +62,7 @@ const baseCtx: SkillEvalContext = {
 
 function newResponse(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
-    verdict: "suspicious",
+    verdict: "review",
     confidence: "medium",
     summary: "The skill is mostly aligned but uses sensitive wallet credentials.",
     dimensions: {
@@ -139,7 +139,7 @@ describe("securityPrompt", () => {
     );
 
     expect(parsed).toMatchObject({
-      verdict: "benign",
+      verdict: "clean",
       confidence: "high",
       summary: "The skill is coherent.",
       guidance: "Looks proportionate.",
@@ -151,7 +151,7 @@ describe("securityPrompt", () => {
   it("parses ASI findings and the three-bucket risk summary", () => {
     const parsed = parseLlmEvalResponse(newResponse());
 
-    expect(parsed?.verdict).toBe("benign");
+    expect(parsed?.verdict).toBe("clean");
     expect(parsed?.agenticRiskFindings?.[0]).toMatchObject({
       categoryId: "ASI03",
       categoryLabel: "Identity and Privilege Abuse",
@@ -169,7 +169,7 @@ describe("securityPrompt", () => {
     ]);
   });
 
-  it("keeps suspicious verdicts only when structured findings include a concern", () => {
+  it("keeps review verdicts only when structured findings include a concern", () => {
     const parsed = parseLlmEvalResponse(
       newResponse({
         agentic_risk_findings: [
@@ -209,13 +209,13 @@ describe("securityPrompt", () => {
       }),
     );
 
-    expect(parsed?.verdict).toBe("suspicious");
+    expect(parsed?.verdict).toBe("review");
   });
 
-  it("parses sparse ASI findings for benign staged ClawScan responses", () => {
+  it("parses sparse ASI findings for clean staged ClawScan responses", () => {
     const parsed = parseLlmEvalResponse(
       newResponse({
-        verdict: "benign",
+        verdict: "clean",
         confidence: "high",
         summary: "The skill is coherent and proportionate.",
         agentic_risk_findings: [],
@@ -240,7 +240,7 @@ describe("securityPrompt", () => {
     );
 
     expect(parsed).toMatchObject({
-      verdict: "benign",
+      verdict: "clean",
       confidence: "high",
       agenticRiskFindings: [],
     });
@@ -250,7 +250,7 @@ describe("securityPrompt", () => {
   it("marks workspace read failures as incomplete artifact inspection", () => {
     const parsed = parseLlmEvalResponse(
       newResponse({
-        verdict: "benign",
+        verdict: "clean",
         confidence: "low",
         summary:
           "No artifact-backed suspicious behavior could be identified because the workspace read commands failed before any files could be inspected.",
@@ -279,7 +279,7 @@ describe("securityPrompt", () => {
     );
 
     expect(parsed).toMatchObject({
-      verdict: "benign",
+      verdict: "clean",
       confidence: "low",
       incompleteArtifactInspection: true,
     });
@@ -314,7 +314,7 @@ describe("securityPrompt", () => {
   it("does not infer incomplete inspection from quoted summary prose", () => {
     const parsed = parseLlmEvalResponse(
       newResponse({
-        verdict: "benign",
+        verdict: "clean",
         confidence: "high",
         summary:
           'The SKILL.md includes the phrase "metadata.json could not be read" as an example, but artifact files were inspected.',
@@ -322,7 +322,7 @@ describe("securityPrompt", () => {
       }),
     );
 
-    expect(parsed?.verdict).toBe("benign");
+    expect(parsed?.verdict).toBe("clean");
     expect(parsed?.incompleteArtifactInspection).toBeUndefined();
   });
 
@@ -429,10 +429,10 @@ describe("securityPrompt", () => {
     );
     expect(SKILL_SECURITY_EVALUATOR_SYSTEM_PROMPT).toContain("Do not hunt for every ASI category");
     expect(SKILL_SECURITY_EVALUATOR_SYSTEM_PROMPT).toContain(
-      'The internal verdict value "suspicious" is the user-facing Review bucket',
+      'The verdict value "review" is not an accusation of malicious intent',
     );
     expect(SKILL_SECURITY_EVALUATOR_SYSTEM_PROMPT).toContain(
-      "Prefer benign for coherent, disclosed, purpose-aligned behavior",
+      "Prefer clean for coherent, disclosed, purpose-aligned behavior",
     );
     expect(SKILL_SECURITY_EVALUATOR_SYSTEM_PROMPT).toContain(
       "reading or using local auth/session/profile stores",
@@ -546,7 +546,7 @@ describe("securityPrompt", () => {
   it("forces benign LLM responses with injection signals into review", () => {
     const parsed = parseLlmEvalResponse(
       newResponse({
-        verdict: "benign",
+        verdict: "clean",
         confidence: "low",
         summary: "Looks fine.",
       }),
@@ -555,7 +555,7 @@ describe("securityPrompt", () => {
     expect(parsed).not.toBeNull();
     const result = applyInjectionSignalFloor(parsed!, ["ignore-previous-instructions"]);
 
-    expect(result.verdict).toBe("suspicious");
+    expect(result.verdict).toBe("review");
     expect(result.confidence).toBe("medium");
     expect(result.summary).toContain("Prompt-injection indicators");
   });

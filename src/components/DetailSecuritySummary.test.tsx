@@ -76,14 +76,52 @@ describe("DetailSecuritySummary", () => {
     expect(screen.queryByText("Warn")).toBeNull();
   });
 
+  it("shows pending while a ClawScan rescan is active", () => {
+    render(
+      <DetailSecuritySummary
+        auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="clean"
+        clawScanState="running"
+        llmAnalysis={{
+          status: "clean",
+          verdict: "clean",
+          checkedAt: 1,
+          summary: "Previous clean result.",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Pending")).toBeTruthy();
+    expect(screen.queryByText("Pass")).toBeNull();
+  });
+
+  it("keeps malicious summary authoritative while a ClawScan rescan is active", () => {
+    render(
+      <DetailSecuritySummary
+        auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="malicious"
+        clawScanState="running"
+        llmAnalysis={{
+          status: "malicious",
+          verdict: "malicious",
+          checkedAt: 1,
+          summary: "Previous malicious result.",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Malicious")).toBeTruthy();
+    expect(screen.queryByText("Pending")).toBeNull();
+  });
+
   it("rolls ClawScan review and warning states into the compact verdict", () => {
     const { rerender } = render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{
-          status: "suspicious",
-          verdict: "suspicious",
+          status: "review",
+          verdict: "review",
           checkedAt: 1,
           summary: "Review the requested permission boundary.",
           agenticRiskFindings: [
@@ -122,8 +160,8 @@ describe("DetailSecuritySummary", () => {
         auditHref="/steipete/weather/security-audit"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{
-          status: "suspicious",
-          verdict: "suspicious",
+          status: "warn",
+          verdict: "warn",
           checkedAt: 1,
           summary: "High concern capability mismatch.",
           agenticRiskFindings: [
@@ -263,7 +301,7 @@ describe("DetailSecuritySummary", () => {
     expect(screen.queryByText("undetected-only-fallback")).toBeNull();
   });
 
-  it("shows static suspicious as review without rolling it up to suspicious", () => {
+  it("keeps static suspicious telemetry out of the compact verdict", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
@@ -280,11 +318,12 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Review")).toBeTruthy();
+    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.queryByText("Review")).toBeNull();
     expect(screen.queryByText("Warn")).toBeNull();
   });
 
-  it("does not aggregate scanner operational errors as malicious verdicts", () => {
+  it("keeps telemetry operational errors out of the compact verdict", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
@@ -301,7 +340,8 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Error")).toBeTruthy();
+    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.queryByText("Error")).toBeNull();
     expect(screen.queryByText("Malicious")).toBeNull();
   });
 });
