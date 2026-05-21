@@ -1,11 +1,7 @@
 /* @vitest-environment node */
 
 import { describe, expect, it } from "vitest";
-import {
-  digestToHydratableSkill,
-  extractDigestFields,
-  digestToOwnerInfo,
-} from "./skillSearchDigest";
+import { extractDigestFields, digestToOwnerInfo } from "./skillSearchDigest";
 
 function makeSkillDoc(overrides: Record<string, unknown> = {}) {
   return {
@@ -38,7 +34,6 @@ function makeSkillDoc(overrides: Record<string, unknown> = {}) {
     moderationEvaluatedAt: undefined,
     moderationSourceVersionId: undefined,
     quality: undefined,
-    isSuspicious: false,
     moderationFlags: ["flagged.test"],
     lastReviewedAt: undefined,
     scanLastCheckedAt: undefined,
@@ -89,7 +84,6 @@ describe("extractDigestFields", () => {
       comments: 1,
     });
     expect(digest.moderationFlags).toEqual(["flagged.test"]);
-    expect(digest.isSuspicious).toBe(false);
     expect(digest.createdAt).toBe(1000);
     expect(digest.updatedAt).toBe(2000);
   });
@@ -145,13 +139,6 @@ describe("extractDigestFields", () => {
     expect(fakeDoc.ownerUserId).toBe("users:owner");
     expect(fakeDoc.tags).toEqual({});
     expect(fakeDoc.stats).toBeDefined();
-  });
-
-  it("preserves suspicious state through digest hydration", () => {
-    const digest = extractDigestFields(makeSkillDoc({ isSuspicious: true }) as never);
-    const hydratable = digestToHydratableSkill(digest as never);
-
-    expect(hydratable.isSuspicious).toBe(true);
   });
 });
 

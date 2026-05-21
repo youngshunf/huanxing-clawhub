@@ -37,7 +37,6 @@ const SHARED_KEYS = [
   "moderationStatus",
   "moderationFlags",
   "moderationReason",
-  "isSuspicious",
   "createdAt",
   "updatedAt",
 ] as const satisfies readonly SharedSkillKey[];
@@ -78,9 +77,8 @@ export function getFirstSearchToken(value: string) {
 
 /**
  * Map a digest row to the HydratableSkill shape expected by toPublicSkill /
- * isPublicSkillDoc / isSkillSuspicious.  Fully type-checked: if
- * HydratableSkill gains a field the digest doesn't carry, this will fail
- * to compile.
+ * isPublicSkillDoc. Fully type-checked: if HydratableSkill gains a field the
+ * digest doesn't carry, this will fail to compile.
  */
 export function digestToHydratableSkill(digest: Doc<"skillSearchDigest">): HydratableSkill {
   return {

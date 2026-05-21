@@ -5,10 +5,8 @@ import { internalAction, internalMutation, internalQuery } from "./functions";
 import {
   compareTrendingEntries,
   getTrendingRange,
-  takeTopNonSuspiciousTrendingEntries,
   takeTopTrendingEntries,
   TRENDING_LEADERBOARD_KIND,
-  TRENDING_NON_SUSPICIOUS_LEADERBOARD_KIND,
 } from "./lib/leaderboards";
 
 const MAX_TRENDING_LIMIT = 200;
@@ -44,23 +42,6 @@ export const getDailyStatsPage = internalQuery({
       isDone: page.isDone,
       continueCursor: page.continueCursor,
     };
-  },
-});
-
-export const filterTopNonSuspiciousTrendingEntries = internalQuery({
-  args: {
-    entries: v.array(
-      v.object({
-        skillId: v.id("skills"),
-        score: v.number(),
-        installs: v.number(),
-        downloads: v.number(),
-      }),
-    ),
-    limit: v.number(),
-  },
-  handler: async (ctx, { entries, limit }) => {
-    return takeTopNonSuspiciousTrendingEntries(ctx, entries, limit);
   },
 });
 
@@ -145,20 +126,10 @@ export const rebuildTrendingLeaderboardAction = internalAction({
       score: entry.installs,
     })).sort((a, b) => compareTrendingEntries(b, a));
     const items = takeTopTrendingEntries(entries, limit);
-    const nonSuspicious = await ctx.runQuery(
-      internal.leaderboards.filterTopNonSuspiciousTrendingEntries,
-      { entries, limit },
-    );
 
     await ctx.runMutation(internal.leaderboards.writeTrendingLeaderboard, {
       kind: TRENDING_LEADERBOARD_KIND,
       items,
-      startDay,
-      endDay,
-    });
-    await ctx.runMutation(internal.leaderboards.writeTrendingLeaderboard, {
-      kind: TRENDING_NON_SUSPICIOUS_LEADERBOARD_KIND,
-      items: nonSuspicious,
       startDay,
       endDay,
     });

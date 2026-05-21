@@ -13,7 +13,6 @@ type ListArgs = {
   sort?: "newest" | "updated" | "downloads" | "installs" | "stars" | "name";
   dir?: "asc" | "desc";
   highlightedOnly?: boolean;
-  nonSuspiciousOnly?: boolean;
 };
 
 type ListResult = {
@@ -45,7 +44,6 @@ describe("skills.listPublicPageV2 (deprecated stub)", () => {
       sort: "downloads",
       dir: "desc",
       highlightedOnly: false,
-      nonSuspiciousOnly: false,
     });
 
     expect(result.page).toEqual([]);

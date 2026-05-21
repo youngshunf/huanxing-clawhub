@@ -30,7 +30,6 @@ type PublicListArgs = {
   sort?: "newest" | "updated" | "downloads" | "installs" | "stars" | "name";
   dir?: "asc" | "desc";
   highlightedOnly?: boolean;
-  nonSuspiciousOnly?: boolean;
   capabilityTag?: string;
   categorySlug?: string;
   categoryKeywords?: string[];
@@ -82,7 +81,6 @@ describe("public skill list deterministic cursors", () => {
     await listPublicPageV4Handler({} as never, {
       cursor: staleDownloadsCursor,
       sort: "name",
-      nonSuspiciousOnly: false,
       numItems: 10,
     });
 
@@ -95,17 +93,11 @@ describe("public skill list deterministic cursors", () => {
   });
 
   it("ignores self-describing cursors from a different selected index", async () => {
-    const staleCursor = cursorForIndex("by_nonsuspicious_downloads", [
-      { __undef: 1 },
-      false,
-      100,
-      200,
-    ]);
+    const staleCursor = cursorForIndex("by_active_name", [{ __undef: 1 }, "beta", 100]);
 
     await listPublicPageV4Handler({} as never, {
       cursor: staleCursor,
       sort: "downloads",
-      nonSuspiciousOnly: false,
       numItems: 10,
     });
 
@@ -133,7 +125,6 @@ describe("public skill list deterministic cursors", () => {
     const result = await listPublicPageV4Handler({} as never, {
       cursor: validCursor,
       sort: "name",
-      nonSuspiciousOnly: false,
       numItems: 10,
     });
 
@@ -155,7 +146,6 @@ describe("public skill list deterministic cursors", () => {
     await listPublicApiPageV1Handler({} as never, {
       cursor: staleCursor,
       sort: "updated",
-      nonSuspiciousOnly: false,
       numItems: 10,
     });
 
@@ -182,7 +172,6 @@ describe("public skill list deterministic cursors", () => {
 
     const first = await listPublicApiPageV1Handler({} as never, {
       sort: "updated",
-      nonSuspiciousOnly: false,
       numItems: 1,
     });
 
@@ -196,7 +185,6 @@ describe("public skill list deterministic cursors", () => {
     const second = await listPublicApiPageV1Handler({} as never, {
       cursor: first.nextCursor!,
       sort: "updated",
-      nonSuspiciousOnly: false,
       numItems: 1,
     });
 
@@ -236,7 +224,6 @@ describe("public skill list deterministic cursors", () => {
       {
         categoryKeywords: ["dev", "debug", "lint", "test", "build"],
         categorySlug: "dev-tools",
-        nonSuspiciousOnly: false,
         numItems: 10,
         sort: "downloads",
       } as PublicListArgs,
@@ -276,7 +263,6 @@ describe("public skill list deterministic cursors", () => {
     const result = await listPublicPageV4Handler({} as never, {
       categoryKeywords: ["security", "scan", "auth", "encrypt"],
       categorySlug: "security",
-      nonSuspiciousOnly: false,
       numItems: 10,
       sort: "downloads",
     });
@@ -317,7 +303,6 @@ function makeDigest(overrides: Record<string, unknown>) {
     softDeletedAt: overrides.softDeletedAt,
     moderationStatus: overrides.moderationStatus ?? "active",
     moderationFlags: overrides.moderationFlags,
-    isSuspicious: overrides.isSuspicious,
     createdAt: 0,
     updatedAt: 0,
     ...overrides,
@@ -353,11 +338,9 @@ describe("skills.listRelatedByCategory", () => {
         statsDownloads: 16,
       }),
       makeDigest({
-        slug: "suspicious-workflow",
-        displayName: "Suspicious Workflow",
+        slug: "review-workflow",
+        displayName: "Review Workflow",
         summary: "Workflow helper.",
-        moderationFlags: ["flagged.suspicious"],
-        isSuspicious: true,
         statsDownloads: 14,
       }),
       makeDigest({
@@ -391,7 +374,7 @@ describe("skills.listRelatedByCategory", () => {
     expect(take).toHaveBeenCalledWith(expect.any(Number));
     expect(result.items.map((entry) => entry.skill.slug)).toEqual([
       "pipeline-builder",
-      "suspicious-workflow",
+      "review-workflow",
     ]);
     expect(result.items[0]?.ownerHandle).toBe("owner");
   });

@@ -157,7 +157,7 @@ describe("skill og route", () => {
       summary: "Search GIFs fast",
       ownerImage: null,
       stats: { downloads: 1200 },
-      moderation: { verdict: "clean", isSuspicious: false, isMalwareBlocked: false },
+      moderation: { verdict: "clean", isMalwareBlocked: false },
     });
 
     const handler = (await import("./skill.png")).default;

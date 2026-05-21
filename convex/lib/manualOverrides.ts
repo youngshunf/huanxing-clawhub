@@ -1,6 +1,5 @@
 import type { Doc, Id } from "../_generated/dataModel";
-import { type ModerationVerdict, legacyFlagsFromVerdict } from "./moderationReasonCodes";
-import { computeIsSuspicious } from "./skillSafety";
+import { type ModerationVerdict, moderationFlagsFromVerdict } from "./moderationReasonCodes";
 
 export type ManualOverrideVerdict = Extract<ModerationVerdict, "clean">;
 
@@ -24,7 +23,6 @@ type SkillModerationPatch = Partial<
     | "moderationEngineVersion"
     | "moderationEvaluatedAt"
     | "moderationSourceVersionId"
-    | "isSuspicious"
     | "hiddenAt"
     | "hiddenBy"
     | "lastReviewedAt"
@@ -73,7 +71,7 @@ export function applyManualOverrideToSkillPatch(params: {
     return params.basePatch;
   }
 
-  const moderationFlags = legacyFlagsFromVerdict(params.override.verdict);
+  const moderationFlags = moderationFlagsFromVerdict(params.override.verdict);
   const moderationReason = buildManualOverrideReason(params.override.verdict);
 
   return {
@@ -87,10 +85,6 @@ export function applyManualOverrideToSkillPatch(params: {
     hiddenAt: undefined,
     hiddenBy: undefined,
     lastReviewedAt: params.override.updatedAt,
-    isSuspicious: computeIsSuspicious({
-      moderationFlags,
-      moderationReason,
-    }),
     updatedAt: params.now,
   };
 }

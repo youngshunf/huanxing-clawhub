@@ -95,8 +95,6 @@ Query params:
 - `q` (required): query string
 - `limit` (optional): integer
 - `highlightedOnly` (optional): `true` to filter to highlighted skills
-- `nonSuspiciousOnly` (optional): deprecated compatibility no-op
-- `nonSuspicious` (optional): deprecated legacy alias for `nonSuspiciousOnly`
 
 Response:
 
@@ -144,8 +142,6 @@ Query params:
 - `limit` (optional): integer (1–200)
 - `cursor` (optional): pagination cursor for any non-`trending` sort
 - `sort` (optional): `updated` (default), `createdAt` (alias: `newest`), `downloads`, `stars` (alias: `rating`), `installsCurrent` (alias: `installs`), `installsAllTime`, `trending`
-- `nonSuspiciousOnly` (optional): deprecated compatibility no-op
-- `nonSuspicious` (optional): deprecated legacy alias for `nonSuspiciousOnly`
 
 Invalid `sort` values return `400`.
 
@@ -195,7 +191,6 @@ Response:
   "metadata": { "os": ["macos"], "systems": ["aarch64-darwin"] },
   "owner": { "handle": "steipete", "displayName": "Peter", "image": null },
   "moderation": {
-    "isSuspicious": false,
     "isMalwareBlocked": false,
     "verdict": "clean",
     "reasonCodes": [],
@@ -223,9 +218,8 @@ Response:
 ```json
 {
   "moderation": {
-    "isSuspicious": true,
     "isMalwareBlocked": false,
-    "verdict": "suspicious",
+    "verdict": "clean",
     "reasonCodes": ["suspicious.dynamic_code_execution"],
     "summary": "Detected: suspicious.dynamic_code_execution",
     "engineVersion": "v2.0.0",
@@ -781,7 +775,7 @@ Query params:
 
 Status meanings:
 
-- `open`: suspicious, malicious, pending, quarantined, revoked, or reported releases.
+- `open`: malicious, quarantined, revoked, or reported releases.
 - `blocked`: quarantined, revoked, or malicious releases.
 - `manual`: any release with a manual moderation override.
 - `all`: any release with a manual override, non-clean scan state, or package report.

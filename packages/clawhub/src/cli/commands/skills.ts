@@ -169,22 +169,6 @@ export async function cmdInstall(
       fail("This skill has been flagged as malware and cannot be installed.");
     }
 
-    if (skillMeta.moderation?.isSuspicious && !force) {
-      spinner.stop();
-      console.log(
-        `\n⚠️  Warning: "${trimmed}" is flagged for ClawHub security review.\n` +
-          "   This skill may contain risky patterns (crypto keys, external APIs, eval, etc.)\n" +
-          "   Review the skill code before use.\n",
-      );
-      if (isInteractive()) {
-        const confirm = await promptConfirm("Install anyway?");
-        if (!confirm) fail("Installation cancelled");
-        spinner.start(`Resolving ${trimmed}`);
-      } else {
-        fail("Use --force to install suspicious skills in non-interactive mode");
-      }
-    }
-
     const resolvedVersion = versionFlag ?? skillMeta.latestVersion?.version ?? null;
     if (!resolvedVersion) fail("Could not resolve latest version");
 
@@ -290,25 +274,6 @@ export async function cmdUpdate(
         spinner.fail(`${entry}: blocked as malicious`);
         console.log("   This skill has been flagged as malware and cannot be updated.");
         continue;
-      }
-
-      if (skillMeta.moderation?.isSuspicious && !options.force) {
-        spinner.stop();
-        console.log(
-          `\n⚠️  Warning: "${entry}" is flagged for ClawHub security review.\n` +
-            "   This skill may contain risky patterns (crypto keys, external APIs, eval, etc.)\n",
-        );
-        if (allowPrompt) {
-          const confirm = await promptConfirm("Update anyway?");
-          if (!confirm) {
-            console.log(`${entry}: skipped`);
-            continue;
-          }
-          spinner.start(`Checking ${entry}`);
-        } else {
-          console.log(`${entry}: skipped (use --force to update suspicious skills)`);
-          continue;
-        }
       }
 
       let localFingerprint: string | null = null;

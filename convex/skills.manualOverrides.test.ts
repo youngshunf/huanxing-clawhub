@@ -103,10 +103,10 @@ describe("skills manual overrides", () => {
       latestVersionId: "skillVersions:1",
       softDeletedAt: undefined,
       moderationStatus: "active",
-      moderationReason: "scanner.vt.suspicious",
-      moderationVerdict: "suspicious",
-      moderationFlags: ["flagged.suspicious"],
-      moderationReasonCodes: ["suspicious.vt_suspicious"],
+      moderationReason: "scanner.llm.review",
+      moderationVerdict: "clean",
+      moderationFlags: undefined,
+      moderationReasonCodes: ["review.llm_review"],
       moderationEvidence: [
         { code: "x", severity: "warn", file: "SKILL.md", line: 1, message: "x", evidence: "x" },
       ],
@@ -133,9 +133,8 @@ describe("skills manual overrides", () => {
         moderationReason: "manual.override.clean",
         moderationVerdict: "clean",
         moderationFlags: undefined,
-        moderationReasonCodes: ["suspicious.vt_suspicious"],
+        moderationReasonCodes: ["review.llm_review"],
         moderationEngineVersion: "v2.0.0",
-        isSuspicious: undefined,
       }),
     );
     expect(insert).toHaveBeenCalledWith(
@@ -161,10 +160,10 @@ describe("skills manual overrides", () => {
       latestVersionId: "skillVersions:1",
       softDeletedAt: undefined,
       moderationStatus: "hidden",
-      moderationReason: "scanner.vt.suspicious",
-      moderationVerdict: "suspicious",
-      moderationFlags: ["flagged.suspicious"],
-      moderationReasonCodes: ["suspicious.vt_suspicious"],
+      moderationReason: "scanner.llm.review",
+      moderationVerdict: "clean",
+      moderationFlags: undefined,
+      moderationReasonCodes: ["review.llm_review"],
       moderationSourceVersionId: "skillVersions:1",
     };
 
@@ -238,7 +237,6 @@ describe("skills manual overrides", () => {
         moderationReason: "scanner.llm.pending",
         moderationVerdict: "clean",
         moderationFlags: undefined,
-        isSuspicious: undefined,
       }),
     );
     expect(insert).toHaveBeenCalledWith(
@@ -303,7 +301,6 @@ describe("skills manual overrides", () => {
         moderationFlags: undefined,
         hiddenAt: undefined,
         lastReviewedAt: undefined,
-        isSuspicious: undefined,
       }),
     );
   });
@@ -319,9 +316,9 @@ describe("skills manual overrides", () => {
       latestVersionId: "skillVersions:1",
       softDeletedAt: undefined,
       moderationStatus: "active",
-      moderationReason: "scanner.vt.suspicious",
-      moderationVerdict: "suspicious",
-      moderationFlags: ["flagged.suspicious"],
+      moderationReason: "scanner.llm.review",
+      moderationVerdict: "clean",
+      moderationFlags: undefined,
     };
 
     const { ctx, patch, insert } = makeCtx({ skill });
@@ -359,7 +356,7 @@ describe("skills manual overrides", () => {
         skillId: "skills:1",
         note: "trying to reactivate blocked malware",
       }),
-    ).rejects.toThrow("Skill is not currently suspicious.");
+    ).rejects.toThrow("Skill is not in a scanner-managed moderation state.");
     expect(patch).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
   });
@@ -563,9 +560,9 @@ describe("skills manual overrides", () => {
       latestVersionId: "skillVersions:8",
       softDeletedAt: undefined,
       moderationStatus: "hidden",
-      moderationReason: "scanner.llm.suspicious",
-      moderationVerdict: "suspicious",
-      moderationFlags: ["flagged.suspicious"],
+      moderationReason: "scanner.llm.review",
+      moderationVerdict: "clean",
+      moderationFlags: undefined,
     };
     const version = {
       _id: "skillVersions:8",
@@ -594,7 +591,7 @@ describe("skills manual overrides", () => {
     );
   });
 
-  it("clears legacy suspicious state when LLM corroborates clean VT telemetry", async () => {
+  it("clears stale scanner-hidden state when LLM corroborates clean VT telemetry", async () => {
     const now = 1_700_000_400_000;
     vi.spyOn(Date, "now").mockReturnValue(now);
 
@@ -604,9 +601,9 @@ describe("skills manual overrides", () => {
       latestVersionId: "skillVersions:9",
       softDeletedAt: undefined,
       moderationStatus: "hidden",
-      moderationReason: "scanner.vt.suspicious",
-      moderationVerdict: "suspicious",
-      moderationFlags: ["flagged.suspicious"],
+      moderationReason: "scanner.llm.review",
+      moderationVerdict: "clean",
+      moderationFlags: undefined,
     };
     const version = {
       _id: "skillVersions:9",
@@ -651,7 +648,6 @@ describe("skills manual overrides", () => {
         moderationFlags: undefined,
         moderationVerdict: "clean",
         moderationReasonCodes: undefined,
-        isSuspicious: undefined,
       }),
     );
   });

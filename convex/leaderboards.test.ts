@@ -76,6 +76,6 @@ describe("leaderboards.rebuildTrendingLeaderboardInternal", () => {
       expect.anything(),
       expect.objectContaining({ cursor: null, limit: 1000 }),
     );
-    expect(runMutation).toHaveBeenCalledTimes(2);
+    expect(runMutation).toHaveBeenCalledTimes(1);
   });
 });

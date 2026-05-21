@@ -1,8 +1,8 @@
 import type { Doc, Id } from "../_generated/dataModel";
 import { normalizeClawScanVerdict, type ClawScanVerdict } from "./clawScanVerdict";
 import {
-  legacyFlagsFromVerdict,
   MODERATION_ENGINE_VERSION,
+  moderationFlagsFromVerdict,
   normalizeReasonCodes,
   type ModerationFinding,
   REASON_CODES,
@@ -74,7 +74,7 @@ export type ModerationSnapshot = {
   engineVersion: string;
   evaluatedAt: number;
   sourceVersionId?: Id<"skillVersions">;
-  legacyFlags?: string[];
+  moderationFlags?: string[];
 };
 
 const MANIFEST_EXTENSION = /\.(json|yaml|yml|toml)$/i;
@@ -1399,7 +1399,7 @@ export function buildModerationSnapshot(params: {
     engineVersion: MODERATION_ENGINE_VERSION,
     evaluatedAt: Date.now(),
     sourceVersionId: params.sourceVersionId,
-    legacyFlags: legacyFlagsFromVerdict(verdict),
+    moderationFlags: moderationFlagsFromVerdict(verdict === "malicious" ? "malicious" : "clean"),
   };
 }
 

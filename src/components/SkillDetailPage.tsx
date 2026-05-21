@@ -106,7 +106,7 @@ function buildStaffVisibilityAlert({
   isAutoHidden: boolean;
   isRemoved: boolean;
   isSoftDeleted: boolean;
-  modInfo?: { isMalwareBlocked: boolean; isSuspicious: boolean } | null;
+  modInfo?: { isMalwareBlocked: boolean } | null;
 }) {
   if (isRemoved) {
     return `This ${artifactKind} was removed from public view by moderation.`;
@@ -131,11 +131,7 @@ function buildStaffVisibilityAlert({
     reason = "because it was hidden for security redaction.";
   } else if (moderationReason?.startsWith("scanner.") && moderationReason.endsWith(".malicious")) {
     reason = "because automated security checks found security warnings or malicious content.";
-  } else if (moderationReason?.startsWith("scanner.") && moderationReason.endsWith(".suspicious")) {
-    reason = "because automated security checks found security warnings or malicious content.";
   } else if (modInfo?.isMalwareBlocked) {
-    reason = "because automated security checks found security warnings or malicious content.";
-  } else if (modInfo?.isSuspicious) {
     reason = "because automated security checks found security warnings or malicious content.";
   } else if (isSoftDeleted && !moderationReason) {
     reason = "because it was unpublished.";
@@ -316,10 +312,7 @@ export function SkillDetailPage({
   const canonical = result?.canonical ?? null;
   const modInfo = result?.moderationInfo ?? null;
   const suppressVersionScanResults =
-    !isStaff &&
-    Boolean(modInfo?.overrideActive) &&
-    !modInfo?.isMalwareBlocked &&
-    !modInfo?.isSuspicious;
+    !isStaff && Boolean(modInfo?.overrideActive) && !modInfo?.isMalwareBlocked;
   const scanResultsSuppressedMessage = suppressVersionScanResults
     ? "Security findings on these releases were reviewed by staff and cleared for public use."
     : null;

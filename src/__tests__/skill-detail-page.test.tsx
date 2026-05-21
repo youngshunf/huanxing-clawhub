@@ -464,7 +464,6 @@ describe("SkillDetailPage", () => {
             moderationInfo: {
               isPendingScan: false,
               isMalwareBlocked: false,
-              isSuspicious: false,
               isHiddenByMod: false,
               isRemoved: false,
               overrideActive: true,

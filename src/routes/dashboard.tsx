@@ -48,7 +48,6 @@ type DashboardSkill = Pick<
   | "moderationReason"
   | "moderationVerdict"
   | "moderationFlags"
-  | "isSuspicious"
   | "createdAt"
   | "updatedAt"
 > & {
@@ -63,6 +62,8 @@ type DashboardSkill = Pick<
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: "clean" | "suspicious" | "malicious" | null;
+    clawScanVerdict?: "clean" | "review" | "warn" | "malicious" | null;
+    clawScanState?: "pending" | "running" | "complete" | "error" | null;
   } | null;
 };
 
@@ -95,6 +96,8 @@ type DashboardPackage = {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: "clean" | "suspicious" | "malicious" | null;
+    clawScanVerdict?: "clean" | "review" | "warn" | "malicious" | null;
+    clawScanState?: "pending" | "running" | "complete" | "error" | null;
   } | null;
 };
 

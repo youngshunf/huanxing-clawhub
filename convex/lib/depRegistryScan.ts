@@ -2,7 +2,7 @@ import {
   MODERATION_ENGINE_VERSION,
   REASON_CODES,
   type ModerationFinding,
-  type ModerationVerdict,
+  type ScannerModerationVerdict,
 } from "./moderationReasonCodes";
 
 export const SUPPORTED_DEP_REGISTRIES = ["pypi", "npm", "cargo"] as const;
@@ -284,7 +284,7 @@ export function buildDepRegistryFinding(analysis: DepRegistryAnalysis): Moderati
 export function mergeDepRegistryFinding(params: {
   staticScan:
     | {
-        status: ModerationVerdict;
+        status: ScannerModerationVerdict;
         reasonCodes: string[];
         findings: ModerationFinding[];
         summary: string;
@@ -293,11 +293,11 @@ export function mergeDepRegistryFinding(params: {
       }
     | undefined;
   analysis: DepRegistryAnalysis;
-  statusFromCodes: (codes: string[]) => ModerationVerdict;
+  statusFromCodes: (codes: string[]) => ScannerModerationVerdict;
   summarizeCodes: (codes: string[]) => string;
 }) {
   const base = params.staticScan ?? {
-    status: "clean" as ModerationVerdict,
+    status: "clean" as ScannerModerationVerdict,
     reasonCodes: [],
     findings: [],
     summary: "No suspicious patterns detected.",

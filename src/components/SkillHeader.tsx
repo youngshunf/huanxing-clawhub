@@ -24,11 +24,10 @@ import { VerifiedBadge } from "./VerifiedBadge";
 type SkillModerationInfo = {
   isPendingScan: boolean;
   isMalwareBlocked: boolean;
-  isSuspicious: boolean;
   isHiddenByMod: boolean;
   isRemoved: boolean;
   overrideActive?: boolean;
-  verdict?: "clean" | "suspicious" | "malicious";
+  verdict?: "clean" | "malicious";
   reason?: string;
 };
 

@@ -226,9 +226,8 @@ export const ApiV1SkillResponseSchema = type({
     image: "string|null?",
   }).or("null"),
   moderation: type({
-    isSuspicious: "boolean",
     isMalwareBlocked: "boolean",
-    verdict: '"clean"|"suspicious"|"malicious"?',
+    verdict: '"clean"|"malicious"?',
     reasonCodes: "string[]?",
     updatedAt: "number|null?",
     engineVersion: "string|null?",
@@ -240,9 +239,8 @@ export const ApiV1SkillResponseSchema = type({
 
 export const ApiV1SkillModerationResponseSchema = type({
   moderation: type({
-    isSuspicious: "boolean",
     isMalwareBlocked: "boolean",
-    verdict: '"clean"|"suspicious"|"malicious"',
+    verdict: '"clean"|"malicious"',
     reasonCodes: "string[]",
     updatedAt: "number|null?",
     engineVersion: "string|null?",

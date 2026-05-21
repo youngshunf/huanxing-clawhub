@@ -1,5 +1,5 @@
-export type ModerationVerdict = "clean" | "suspicious" | "malicious";
-export type ScannerModerationVerdict = ModerationVerdict;
+export type ModerationVerdict = "clean" | "malicious";
+export type ScannerModerationVerdict = "clean" | "suspicious" | "malicious";
 
 export type ModerationFindingSeverity = "info" | "warn" | "critical";
 
@@ -82,8 +82,7 @@ export function verdictFromCodes(codes: string[]): ScannerModerationVerdict {
   return "clean";
 }
 
-export function legacyFlagsFromVerdict(verdict: ModerationVerdict) {
+export function moderationFlagsFromVerdict(verdict: ModerationVerdict) {
   if (verdict === "malicious") return ["blocked.malware"];
-  if (verdict === "suspicious") return ["flagged.suspicious"];
   return undefined;
 }

@@ -73,9 +73,7 @@ export default defineEventHandler(async (event) => {
     auditFromQuery ||
     (meta?.moderation?.isMalwareBlocked || meta?.moderation?.verdict === "malicious"
       ? "Audit BLOCK"
-      : meta?.moderation?.isSuspicious || meta?.moderation?.verdict === "suspicious"
-        ? "Audit REVIEW"
-        : "Audit PASS");
+      : "Audit PASS");
 
   const cacheKey = version ? "public, max-age=31536000, immutable" : "public, max-age=3600";
   const [markDataUrl, watermarkDataUrl, fontBuffers] = await Promise.all([

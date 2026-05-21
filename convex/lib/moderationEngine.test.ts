@@ -2128,7 +2128,7 @@ describe("moderationEngine", () => {
     expect(snapshot.verdict).toBe("clean");
     expect(snapshot.reasonCodes).toEqual([]);
     expect(snapshot.summary).toBe("No suspicious patterns detected.");
-    expect(snapshot.legacyFlags).toBeUndefined();
+    expect(snapshot.moderationFlags).toBeUndefined();
   });
 
   it("maps legacy high LLM concerns to visible review unless ClawScan marks malicious", () => {
@@ -2147,7 +2147,7 @@ describe("moderationEngine", () => {
 
     expect(snapshot.verdict).toBe("clean");
     expect(snapshot.reasonCodes).toEqual([]);
-    expect(snapshot.legacyFlags).toBeUndefined();
+    expect(snapshot.moderationFlags).toBeUndefined();
   });
 
   it("does not let uncorroborated VT suspicious override clean local scans", () => {

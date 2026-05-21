@@ -46,7 +46,6 @@ function makeSkill(overrides: Record<string, unknown> = {}) {
     moderationFlags: [],
     moderationReason: undefined,
     moderationVerdict: "clean",
-    isSuspicious: false,
     ...overrides,
   };
 }
@@ -148,7 +147,6 @@ describe("skills.list", () => {
       moderationFlags: ["blocked.malware"],
       moderationReason: "scanner.vt.malicious",
       moderationVerdict: "malicious",
-      isSuspicious: true,
     });
 
     const ctx = {

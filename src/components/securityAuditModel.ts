@@ -1,5 +1,4 @@
 import {
-  getClawScanDisplayStatus,
   getVirusTotalDisplayStatus,
   type LlmAnalysis,
   type StaticFinding,
@@ -52,17 +51,18 @@ function getStaticScanDisplayStatus(staticScan?: StaticScanAnalysis | null) {
 
 function getClawScanAuditStatus(signals: SecurityAuditSignals) {
   const verdict = signals.clawScanVerdict?.trim().toLowerCase();
+  const state = signals.clawScanState?.trim().toLowerCase();
+  if (verdict === "malicious") return "malicious";
+  if (state === "pending" || state === "running") return "pending";
+  if (state === "error") return "error";
   if (verdict === "benign") return "clean";
   if (verdict === "suspicious") return "review";
   if (verdict === "warning") return "warn";
-  if (verdict === "malicious") return "malicious";
-
-  const state = signals.clawScanState?.trim().toLowerCase();
-  if (state === "pending" || state === "running") return "pending";
-  if (state === "error") return "error";
-  if (verdict) return verdict;
-
-  return getClawScanDisplayStatus(signals.llmAnalysis);
+  if (verdict === "clean" || verdict === "review" || verdict === "warn") return verdict;
+  if (state === "complete") return "error";
+  // PR2 is deployed only after the PR1 backfill verifies canonical fields.
+  // Keep missing canonical values explicit instead of recanonicalizing legacy llmAnalysis.
+  return "pending";
 }
 
 export function getAuditScannerStatus(kind: AuditScannerKind, signals: SecurityAuditSignals) {
@@ -101,7 +101,13 @@ export function getSecurityAuditOverviewCopy({
   const state = clawScanState?.trim().toLowerCase();
   if (state === "pending" || state === "running") return ["Risk analysis is pending."];
   if (state === "error") return ["Risk analysis could not be completed for this release."];
-  if (!llmAnalysis) return ["Risk analysis is pending."];
+  if (!llmAnalysis) {
+    if (verdict === "clean") return ["Risk analysis completed with no visible findings."];
+    if (verdict === "review" || verdict === "warn") {
+      return ["Risk analysis completed with non-blocking guidance."];
+    }
+    return ["Risk analysis is pending."];
+  }
   return [
     llmAnalysis.summary?.trim() || "No risk analysis has been recorded yet.",
     llmAnalysis?.guidance?.trim() || null,

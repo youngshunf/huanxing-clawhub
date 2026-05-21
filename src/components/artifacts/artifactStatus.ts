@@ -2,23 +2,27 @@ export type ArtifactDisplayStatus = {
   key?: string;
   label: string;
   description: string;
+  scanStatus: string;
   variant: "default" | "pending" | "warning" | "destructive" | "success";
 };
 
 type ArtifactScanSignalStatus = "clean" | "suspicious" | "malicious" | null;
+type ClawScanVerdict = "clean" | "review" | "warn" | "malicious";
+type ClawScanState = "pending" | "running" | "complete" | "error";
 
 type SkillArtifactStatusInput = {
   moderationStatus?: string;
   moderationReason?: string;
-  moderationVerdict?: "clean" | "suspicious" | "malicious";
+  moderationVerdict?: "clean" | "malicious";
   moderationFlags?: string[];
-  isSuspicious?: boolean;
   pendingReview?: boolean;
   qualityDecision?: "pass" | "quarantine" | "reject";
   latestVersion?: {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: ArtifactScanSignalStatus;
+    clawScanVerdict?: ClawScanVerdict | null;
+    clawScanState?: ClawScanState | null;
   } | null;
 };
 
@@ -29,55 +33,74 @@ type PackageArtifactStatusInput = {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: ArtifactScanSignalStatus;
+    clawScanVerdict?: ClawScanVerdict | null;
+    clawScanState?: ClawScanState | null;
   } | null;
 };
 
-export function artifactStatusToScanStatus(status: Pick<ArtifactDisplayStatus, "key" | "label">) {
+export function artifactStatusToScanStatus(
+  status: Pick<ArtifactDisplayStatus, "key" | "label" | "scanStatus">,
+) {
+  if (status.scanStatus) return status.scanStatus;
   if (status.key === "blocked" || status.label === "Blocked") return "malicious";
-  if (status.key === "suspicious" || status.label === "Review") return "review";
   if (status.key === "visible" || status.label === "Visible") return "clean";
   if (status.key === "pending" || status.label === "Pending checks") return "pending";
   return "unknown";
 }
 
+function getClawScanBadgeStatus(
+  scan:
+    | {
+        clawScanVerdict?: ClawScanVerdict | null;
+        clawScanState?: ClawScanState | null;
+      }
+    | null
+    | undefined,
+  fallback?: string | null,
+) {
+  const verdict = scan?.clawScanVerdict ?? null;
+  const state = scan?.clawScanState ?? null;
+
+  if (verdict === "malicious") return "malicious";
+  if (state === "pending" || state === "running") return "pending";
+  if (state === "error") return "error";
+  if (verdict) return verdict;
+  if (state === "complete") return "error";
+  if (fallback === "malicious" || fallback === "pending" || fallback === "not-run") {
+    return fallback === "not-run" ? "pending" : fallback;
+  }
+  if (fallback === "clean") return "clean";
+  return "unknown";
+}
+
 export function skillArtifactStatus(skill: SkillArtifactStatusInput): ArtifactDisplayStatus & {
-  key: "visible" | "pending" | "suspicious" | "blocked" | "hidden" | "removed" | "quality";
+  key: "visible" | "pending" | "blocked" | "hidden" | "removed" | "quality";
 } {
   const flags = skill.moderationFlags ?? [];
   const reason = skill.moderationReason ?? "";
-  const versionStatuses = new Set([skill.latestVersion?.llmStatus]);
+  const scanStatus = getClawScanBadgeStatus(skill.latestVersion);
 
   if (skill.moderationStatus === "removed") {
     return {
       key: "removed",
       label: "Removed",
       description: "Removed from public inventory by moderation.",
+      scanStatus,
       variant: "destructive",
     };
   }
   if (
     flags.includes("blocked.malware") ||
     skill.moderationVerdict === "malicious" ||
-    versionStatuses.has("malicious")
+    skill.latestVersion?.clawScanVerdict === "malicious"
   ) {
     return {
       key: "blocked",
       label: "Blocked",
       description:
         "Unavailable publicly because automated security checks found malicious content.",
+      scanStatus: "malicious",
       variant: "destructive",
-    };
-  }
-  if (
-    skill.pendingReview ||
-    (skill.moderationStatus === "hidden" &&
-      (reason === "pending.scan" || reason === "pending.scan.stale"))
-  ) {
-    return {
-      key: "pending",
-      label: "Pending checks",
-      description: "Hidden until security verification checks finish.",
-      variant: "pending",
     };
   }
   if (
@@ -89,20 +112,7 @@ export function skillArtifactStatus(skill: SkillArtifactStatusInput): ArtifactDi
       key: "quality",
       label: "Quality held",
       description: "Unavailable while quality review is holding this release.",
-      variant: "warning",
-    };
-  }
-  if (
-    skill.isSuspicious ||
-    flags.includes("flagged.suspicious") ||
-    skill.moderationVerdict === "suspicious" ||
-    versionStatuses.has("suspicious")
-  ) {
-    return {
-      key: "suspicious",
-      label: "Review",
-      description:
-        "Visible in ClawHub, but users are asked to inspect this skill carefully before installing.",
+      scanStatus,
       variant: "warning",
     };
   }
@@ -111,6 +121,7 @@ export function skillArtifactStatus(skill: SkillArtifactStatusInput): ArtifactDi
       key: "hidden",
       label: "Hidden",
       description: "Hidden from public catalog surfaces.",
+      scanStatus,
       variant: "warning",
     };
   }
@@ -118,45 +129,26 @@ export function skillArtifactStatus(skill: SkillArtifactStatusInput): ArtifactDi
     key: "visible",
     label: "Visible",
     description: "Available on public catalog surfaces.",
+    scanStatus,
     variant: "success",
   };
 }
 
 export function packageArtifactStatus(pkg: PackageArtifactStatusInput): ArtifactDisplayStatus {
-  const releaseStatuses = new Set([pkg.latestRelease?.llmStatus]);
+  const scanStatus = getClawScanBadgeStatus(pkg.latestRelease, pkg.scanStatus);
 
-  if (pkg.scanStatus === "malicious" || releaseStatuses.has("malicious")) {
+  if (pkg.scanStatus === "malicious" || pkg.latestRelease?.clawScanVerdict === "malicious") {
     return {
       label: "Blocked",
       description: "Security checks found malicious content.",
+      scanStatus: "malicious",
       variant: "destructive",
     };
   }
-  if (pkg.scanStatus === "suspicious" || releaseStatuses.has("suspicious")) {
-    return {
-      label: "Review",
-      description:
-        "Visible in ClawHub, but users are asked to inspect this plugin carefully before installing.",
-      variant: "warning",
-    };
-  }
-  if (pkg.scanStatus === "pending" || pkg.pendingReview) {
-    return {
-      label: "Pending checks",
-      description: "Security verification is still running.",
-      variant: "pending",
-    };
-  }
-  if (pkg.scanStatus === "clean") {
-    return {
-      label: "Visible",
-      description: "Available on public catalog surfaces.",
-      variant: "success",
-    };
-  }
   return {
-    label: "Unknown",
-    description: "Open the plugin for the latest release and security details.",
-    variant: "default",
+    label: "Visible",
+    description: "Available on public catalog surfaces.",
+    scanStatus,
+    variant: "success",
   };
 }

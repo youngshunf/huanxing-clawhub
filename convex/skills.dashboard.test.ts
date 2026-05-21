@@ -56,7 +56,6 @@ function makeSkill(slug: string, overrides: Record<string, unknown> = {}) {
     moderationStatus: "active",
     moderationFlags: [],
     moderationReason: undefined,
-    isSuspicious: false,
     ...overrides,
   };
 }

@@ -9,6 +9,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{
           status: "clean",
@@ -118,6 +119,7 @@ describe("DetailSecuritySummary", () => {
     const { rerender } = render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="review"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{
           status: "review",
@@ -158,6 +160,7 @@ describe("DetailSecuritySummary", () => {
     rerender(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="warn"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{
           status: "warn",
@@ -201,6 +204,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{ status: "clean", summary: "No mismatches found.", checkedAt: 1 }}
         staticScan={{
@@ -222,6 +226,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/tokauthai/skillscan/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "suspicious",
           source: "legacy-ai",
@@ -250,6 +255,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/tokauthai/skillscan/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "suspicious",
           source: "legacy-ai",
@@ -277,6 +283,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/plugins/@opik/opik-openclaw/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "clean",
           verdict: "undetected-only-fallback",
@@ -305,6 +312,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
         llmAnalysis={{ status: "clean", checkedAt: 1 }}
         staticScan={{
@@ -327,6 +335,7 @@ describe("DetailSecuritySummary", () => {
     render(
       <DetailSecuritySummary
         auditHref="/steipete/weather/security-audit"
+        clawScanVerdict="clean"
         vtAnalysis={{ status: "failed", checkedAt: 1 }}
         llmAnalysis={{ status: "clean", summary: "No ClawScan issues.", checkedAt: 1 }}
         staticScan={{

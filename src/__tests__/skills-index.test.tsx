@@ -391,11 +391,7 @@ describe("SkillsIndex", () => {
   });
 });
 
-function makeListResult(
-  slug: string,
-  displayName: string,
-  options: { isSuspicious?: boolean; summary?: string } = {},
-) {
+function makeListResult(slug: string, displayName: string, options: { summary?: string } = {}) {
   return {
     skill: {
       _id: `skill_${slug}`,
@@ -411,7 +407,6 @@ function makeListResult(
         versions: 1,
         comments: 0,
       },
-      isSuspicious: options.isSuspicious,
       createdAt: 0,
       updatedAt: 0,
     },

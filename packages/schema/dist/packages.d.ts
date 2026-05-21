@@ -52,7 +52,7 @@ export declare const PackageVerificationSummarySchema: import("arktype/internal/
     sourceTag?: string | undefined;
     hasProvenance?: boolean | undefined;
     trustedOpenClawPlugin?: boolean | undefined;
-    scanStatus?: "clean" | "suspicious" | "malicious" | "pending" | "not-run" | undefined;
+    scanStatus?: "clean" | "malicious" | "suspicious" | "pending" | "not-run" | undefined;
 }, {}>;
 export type PackageVerificationSummary = (typeof PackageVerificationSummarySchema)[inferred];
 export declare const PackageStatsSchema: import("arktype/internal/variants/object.ts").ObjectType<{
@@ -341,7 +341,7 @@ export declare const ApiV1PackageResponseSchema: import("arktype/internal/varian
             sourceTag?: string | undefined;
             hasProvenance?: boolean | undefined;
             trustedOpenClawPlugin?: boolean | undefined;
-            scanStatus?: "clean" | "suspicious" | "malicious" | "pending" | "not-run" | undefined;
+            scanStatus?: "clean" | "malicious" | "suspicious" | "pending" | "not-run" | undefined;
         } | null | undefined;
         artifact?: {
             kind: "legacy-zip" | "npm-pack";
@@ -430,7 +430,7 @@ export declare const ApiV1PackageVersionResponseSchema: import("arktype/internal
             sourceTag?: string | undefined;
             hasProvenance?: boolean | undefined;
             trustedOpenClawPlugin?: boolean | undefined;
-            scanStatus?: "clean" | "suspicious" | "malicious" | "pending" | "not-run" | undefined;
+            scanStatus?: "clean" | "malicious" | "suspicious" | "pending" | "not-run" | undefined;
         } | null | undefined;
         artifact?: {
             kind: "legacy-zip" | "npm-pack";
@@ -541,7 +541,7 @@ export declare const ApiV1PackageSecurityResponseSchema: import("arktype/interna
         npmTarballName?: string | undefined;
     };
     trust: {
-        scanStatus: "clean" | "suspicious" | "malicious" | "pending" | "not-run";
+        scanStatus: "clean" | "malicious" | "suspicious" | "pending" | "not-run";
         blockedFromDownload: boolean;
         reasons: string[];
         pending: boolean;
@@ -676,12 +676,12 @@ export declare const ApiV1PackageModerationStatusResponseSchema: import("arktype
         isOfficial: boolean;
         reportCount: number;
         lastReportedAt?: number | null | undefined;
-        scanStatus?: "clean" | "suspicious" | "malicious" | "pending" | "not-run" | undefined;
+        scanStatus?: "clean" | "malicious" | "suspicious" | "pending" | "not-run" | undefined;
     };
     latestRelease: {
         releaseId: string;
         version: string;
-        scanStatus: "clean" | "suspicious" | "malicious" | "pending" | "not-run";
+        scanStatus: "clean" | "malicious" | "suspicious" | "pending" | "not-run";
         blockedFromDownload: boolean;
         reasons: string[];
         createdAt: number;
@@ -899,7 +899,7 @@ export declare const ApiV1PackageModerationQueueResponseSchema: import("arktype/
         isOfficial: boolean;
         version: string;
         createdAt: number;
-        scanStatus: "clean" | "suspicious" | "malicious" | "pending" | "not-run";
+        scanStatus: "clean" | "malicious" | "suspicious" | "pending" | "not-run";
         reportCount: number;
         reasons: string[];
         artifactKind?: "legacy-zip" | "npm-pack" | null | undefined;

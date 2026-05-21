@@ -97,9 +97,10 @@ See also: [acceptable-usage.md](./acceptable-usage.md) for the marketplace polic
   moderator-only queries and unhide/restore/delete/ban.
 - Legacy report rows with `status: "triaged"` are read as `confirmed` for
   compatibility while new writes store `confirmed`.
-- The legacy "Hide suspicious" browse/search filter and `isSuspicious` field
-  are deprecated compatibility surfaces. Suspicious/review/warn guidance no
-  longer creates an allowed-but-hidden product state.
+- The legacy "Hide suspicious" browse/search filter, `isSuspicious` field,
+  `nonSuspiciousOnly` API filter, and `flagged.review` / `flagged.suspicious`
+  flags have been removed. Review/warn guidance no longer creates an
+  allowed-but-hidden product state.
 
 ## Skill moderation pipeline
 

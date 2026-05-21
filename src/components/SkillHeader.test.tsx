@@ -50,7 +50,6 @@ describe("SkillHeader", () => {
       installsCurrent: 1,
       installsAllTime: 3,
     },
-    isSuspicious: false,
     createdAt: 1,
     updatedAt: 1,
   };
@@ -187,7 +186,6 @@ describe("SkillHeader", () => {
       modInfo: {
         isPendingScan: false,
         isMalwareBlocked: false,
-        isSuspicious: true,
         isHiddenByMod: false,
         isRemoved: false,
       },
@@ -202,7 +200,6 @@ describe("SkillHeader", () => {
       modInfo: {
         isPendingScan: true,
         isMalwareBlocked: false,
-        isSuspicious: false,
         isHiddenByMod: false,
         isRemoved: false,
       },

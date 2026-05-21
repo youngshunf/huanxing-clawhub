@@ -53,7 +53,6 @@ type SkillDoc = {
   moderationStatus: string;
   moderationReason: string;
   moderationFlags: string[] | undefined;
-  isSuspicious: boolean;
   softDeletedAt: number | undefined;
   createdAt: number;
   updatedAt: number;
@@ -96,7 +95,6 @@ function buildExistingSkill(overrides: Partial<SkillDoc> = {}): SkillDoc {
     moderationStatus: "active",
     moderationReason: "pending.scan",
     moderationFlags: undefined,
-    isSuspicious: false,
     softDeletedAt: undefined,
     createdAt: 1,
     updatedAt: 1,

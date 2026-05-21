@@ -12,7 +12,6 @@ type ListArgs = {
   cursor?: string;
   limit?: number;
   sort?: "updated" | "downloads" | "stars" | "installsCurrent" | "installsAllTime" | "trending";
-  nonSuspiciousOnly?: boolean;
 };
 
 type ListResult = {
@@ -40,7 +39,6 @@ describe("skills.listPublicPage (deprecated stub)", () => {
     const result = await listPublicPageHandler(ctx, {
       sort: "updated",
       limit: 10,
-      nonSuspiciousOnly: true,
     });
 
     expect(result.items).toEqual([]);

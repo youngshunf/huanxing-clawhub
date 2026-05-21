@@ -674,8 +674,8 @@ The Convex plan should assume:
   not broad reactive subscriptions
 - discovery pages read from compact digest/projection tables, not large source
   documents with joins
-- high-traffic filters such as `family`, `channel`, `isOfficial`, and
-  `isSuspicious` need compound indexes
+- high-traffic filters such as `family`, `channel`, and `isOfficial` need
+  compound indexes
 - triggers and backfills must compare before writing so unchanged digests do
   not cause invalidation storms
 

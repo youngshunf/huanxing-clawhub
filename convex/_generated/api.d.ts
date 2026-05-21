@@ -93,7 +93,6 @@ import type * as lib_skillCapabilityTags from "../lib/skillCapabilityTags.js";
 import type * as lib_skillIcon from "../lib/skillIcon.js";
 import type * as lib_skillPublish from "../lib/skillPublish.js";
 import type * as lib_skillQuality from "../lib/skillQuality.js";
-import type * as lib_skillSafety from "../lib/skillSafety.js";
 import type * as lib_skillSearchDigest from "../lib/skillSearchDigest.js";
 import type * as lib_skillSlugValidator from "../lib/skillSlugValidator.js";
 import type * as lib_skillStats from "../lib/skillStats.js";
@@ -227,7 +226,6 @@ declare const fullApi: ApiFromModules<{
   "lib/skillIcon": typeof lib_skillIcon;
   "lib/skillPublish": typeof lib_skillPublish;
   "lib/skillQuality": typeof lib_skillQuality;
-  "lib/skillSafety": typeof lib_skillSafety;
   "lib/skillSearchDigest": typeof lib_skillSearchDigest;
   "lib/skillSlugValidator": typeof lib_skillSlugValidator;
   "lib/skillStats": typeof lib_skillStats;

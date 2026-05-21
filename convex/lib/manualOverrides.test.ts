@@ -35,7 +35,6 @@ describe("manualOverrides", () => {
       moderationFlags: undefined,
       moderationSummary: "Manual override (clean): security tool false positive",
       moderationEvaluatedAt: now,
-      isSuspicious: undefined,
       updatedAt: now,
     });
     expect(patch.moderationReasonCodes).toEqual(["suspicious.dynamic_code_execution"]);

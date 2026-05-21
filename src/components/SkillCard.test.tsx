@@ -52,7 +52,6 @@ function makeSkill(): PublicSkill {
       installsCurrent: 0,
       installsAllTime: 0,
     },
-    isSuspicious: false,
     createdAt: 1,
     updatedAt: 1,
   };

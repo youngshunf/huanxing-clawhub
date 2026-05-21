@@ -19,7 +19,7 @@ describe("Convex export dataset ingestion", () => {
           slug: "demo-skill",
           capabilityTags: ["filesystem"],
           moderationSourceVersionId: "skillVersions:1",
-          moderationVerdict: "suspicious",
+          moderationVerdict: "clean",
           moderationReasonCodes: ["network.exfiltration"],
           moderationSummary: "uses a token",
           moderationEngineVersion: "v2",
@@ -130,7 +130,7 @@ describe("Convex export dataset ingestion", () => {
       sourceDocId: "skillVersions:1",
       artifactSha256: "skill-sha",
       moderationConsensus: {
-        verdict: "suspicious",
+        verdict: "clean",
         reasonCodes: ["network.exfiltration"],
       },
       llmAnalysis: { model: "gpt-test" },

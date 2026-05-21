@@ -204,31 +204,27 @@ describe("search helpers", () => {
     expect(result.map((entry) => entry.skill.slug)).toEqual(["baidu-yijian-vision"]);
   });
 
-  it("keeps formerly suspicious skills in full-text search when nonSuspiciousOnly is set", async () => {
-    // The legacy suspicious product state is no longer a visibility filter.
-    // The compatibility flag is accepted but intentionally does not hide rows.
+  it("keeps review-like skills in full-text search", async () => {
     const clean = makeSkillDoc({
       id: "skills:clean",
       slug: "baidu-yijian-vision",
       displayName: "Baidu Yijian Vision",
     });
-    const flagged = makeSkillDoc({
-      id: "skills:flagged",
-      slug: "shady-yijian-trick",
-      displayName: "Shady Yijian Trick",
-      moderationFlags: ["flagged.suspicious"],
+    const review = makeSkillDoc({
+      id: "skills:review",
+      slug: "review-yijian-tool",
+      displayName: "Review Yijian Tool",
     });
-    const ctx = makeDirectPrefixCtx([clean, flagged]);
+    const ctx = makeDirectPrefixCtx([clean, review]);
 
     const result = await directPrefixSkillMatchesHandler(ctx, {
       query: "yijian",
-      nonSuspiciousOnly: true,
       limit: 10,
     });
 
     expect(result.map((entry) => entry.skill.slug)).toEqual([
       "baidu-yijian-vision",
-      "shady-yijian-trick",
+      "review-yijian-tool",
     ]);
   });
 
@@ -353,44 +349,17 @@ describe("search helpers", () => {
     expect(result[0].skill.slug).toBe("orf-highlighted");
   });
 
-  it("does not apply legacy nonSuspiciousOnly filtering in lexical fallback", async () => {
-    const suspicious = makeSkillDoc({
-      id: "skills:suspicious",
-      slug: "orf-suspicious",
-      displayName: "ORF Suspicious",
-      moderationFlags: ["flagged.suspicious"],
-    });
+  it("keeps review-like lexical fallback results visible", async () => {
     const clean = makeSkillDoc({ id: "skills:clean", slug: "orf-clean", displayName: "ORF Clean" });
+    const review = makeSkillDoc({
+      id: "skills:review",
+      slug: "orf-review",
+      displayName: "ORF Review",
+    });
 
     const ctx = makeLexicalCtx({
       exactSlugSkill: null,
-      recentSkills: [suspicious, clean],
-    });
-
-    const result = await lexicalFallbackSkillsHandler(ctx, {
-      query: "orf",
-      queryTokens: ["orf"],
-      nonSuspiciousOnly: true,
-      limit: 10,
-    });
-
-    expect(result.map((entry) => entry.skill.slug)).toEqual(["orf-suspicious", "orf-clean"]);
-    expect(ctx.usedIndexes).not.toEqual(
-      expect.arrayContaining(["by_nonsuspicious_updated", "by_nonsuspicious_created"]),
-    );
-  });
-
-  it("preserves suspicious lexical fallback results when nonSuspiciousOnly is unset", async () => {
-    const clean = makeSkillDoc({ id: "skills:clean", slug: "orf-clean", displayName: "ORF Clean" });
-    const suspicious = makeSkillDoc({
-      id: "skills:suspicious",
-      slug: "orf-suspicious",
-      displayName: "ORF Suspicious",
-      moderationFlags: ["flagged.suspicious"],
-    });
-    const ctx = makeLexicalCtx({
-      exactSlugSkill: null,
-      recentSkills: [clean, suspicious],
+      recentSkills: [review, clean],
     });
 
     const result = await lexicalFallbackSkillsHandler(ctx, {
@@ -399,7 +368,7 @@ describe("search helpers", () => {
       limit: 10,
     });
 
-    expect(result.map((entry) => entry.skill.slug)).toEqual(["orf-clean", "orf-suspicious"]);
+    expect(result.map((entry) => entry.skill.slug)).toEqual(["orf-review", "orf-clean"]);
     expect(ctx.usedIndexes).toEqual(
       expect.arrayContaining(["by_active_updated", "by_active_created"]),
     );
@@ -714,43 +683,6 @@ describe("search helpers", () => {
     expect(runQuery).toHaveBeenCalledTimes(4);
   });
 
-  it("omits exact slug injection when nonSuspiciousOnly excludes it", async () => {
-    generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
-
-    const vectorEntries = [
-      {
-        embeddingId: "skillEmbeddings:1",
-        skill: makePublicSkill({
-          id: "skills:1",
-          slug: "downloader-1",
-          displayName: "Skill Downloader 1",
-          downloads: 50,
-        }),
-        version: null,
-        ownerHandle: "owner",
-        owner: null,
-      },
-    ];
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce(vectorEntries)
-      .mockResolvedValueOnce([]);
-
-    const result = await searchSkillsHandler(
-      {
-        vectorSearch: vi.fn().mockResolvedValue([{ _id: "skillEmbeddings:1", _score: 0.9 }]),
-        runQuery,
-      },
-      { query: "skill-downloader", limit: 10, nonSuspiciousOnly: true },
-    );
-
-    expect(result).toHaveLength(1);
-    expect(result[0].skill.slug).toBe("downloader-1");
-  });
-
   it("omits exact slug injection when highlightedOnly excludes it", async () => {
     generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
 
@@ -949,7 +881,7 @@ describe("search helpers", () => {
     expect(result[0].skill.slug).toBe("orf");
   });
 
-  it("keeps formerly suspicious vector results in hydrateResults when requested", async () => {
+  it("keeps review-like vector results in hydrateResults", async () => {
     const result = await hydrateResultsHandler(
       {
         db: {
@@ -964,9 +896,8 @@ describe("search helpers", () => {
             if (id === "skills:1") {
               return makeSkillDoc({
                 id: "skills:1",
-                slug: "suspicious",
-                displayName: "Suspicious",
-                moderationFlags: ["flagged.suspicious"],
+                slug: "review",
+                displayName: "Review",
               });
             }
             if (id === "users:owner") return { _id: "users:owner", handle: "owner" };
@@ -978,11 +909,11 @@ describe("search helpers", () => {
           })),
         },
       },
-      { embeddingIds: ["skillEmbeddings:1"], nonSuspiciousOnly: true },
+      { embeddingIds: ["skillEmbeddings:1"] },
     );
 
     expect(result).toHaveLength(1);
-    expect(result[0].skill.slug).toBe("suspicious");
+    expect(result[0].skill.slug).toBe("review");
   });
 
   it("excludes soft-deleted skills from vector search results (#29)", async () => {
@@ -1220,7 +1151,6 @@ describe("search helpers", () => {
       moderationStatus: skillDoc.moderationStatus,
       moderationFlags: skillDoc.moderationFlags,
       moderationReason: skillDoc.moderationReason,
-      isSuspicious: false,
       createdAt: skillDoc.createdAt,
       updatedAt: skillDoc.updatedAt,
     };
@@ -1660,7 +1590,7 @@ function makeLexicalCtx(params: {
           return {
             withIndex: (index: string) => {
               usedIndexes.push(index);
-              if (index === "by_active_updated" || index === "by_nonsuspicious_updated") {
+              if (index === "by_active_updated") {
                 return {
                   order: () => ({
                     take: vi.fn((limit: number) => {
@@ -1670,7 +1600,7 @@ function makeLexicalCtx(params: {
                   }),
                 };
               }
-              if (index === "by_active_created" || index === "by_nonsuspicious_created") {
+              if (index === "by_active_created") {
                 return {
                   order: () => ({
                     take: vi.fn((limit: number) => {
@@ -1708,7 +1638,6 @@ function makeDirectPrefixCtx(skills: Array<ReturnType<typeof makeSkillDoc>>) {
     normalizedSlugFirstToken: firstToken(skill.slug),
     normalizedDisplayName: skill.displayName.toLowerCase(),
     normalizedDisplayNameFirstToken: firstToken(skill.displayName),
-    isSuspicious: (skill.moderationFlags ?? []).includes("flagged.suspicious"),
     ownerHandle: "owner",
     ownerName: "Owner",
     ownerDisplayName: "Owner",

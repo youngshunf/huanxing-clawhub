@@ -13,7 +13,7 @@ import type { ActionCtx } from "../_generated/server";
 import { getOptionalApiTokenUserId, requireApiTokenUser } from "../lib/apiTokenAuth";
 import { normalizeClawScanVerdict, type ClawScanState } from "../lib/clawScanVerdict";
 import { applyRateLimit } from "../lib/httpRateLimit";
-import { parseBooleanQueryParam, resolveBooleanQueryParam } from "../lib/httpUtils";
+import { parseBooleanQueryParam } from "../lib/httpUtils";
 import type {
   LlmAgenticRiskFinding,
   LlmEvalDimension,
@@ -126,7 +126,7 @@ type ModerationEvidence = {
 
 type SkillModerationShape = {
   moderationFlags?: string[];
-  moderationVerdict?: "clean" | "suspicious" | "malicious";
+  moderationVerdict?: "clean" | "malicious";
   moderationReasonCodes?: string[];
   moderationSummary?: string;
   moderationEngineVersion?: string;
@@ -153,10 +153,9 @@ type GetBySlugResult = {
   moderationInfo?: {
     isPendingScan: boolean;
     isMalwareBlocked: boolean;
-    isSuspicious: boolean;
     isHiddenByMod: boolean;
     isRemoved: boolean;
-    verdict?: "clean" | "suspicious" | "malicious";
+    verdict?: "clean" | "malicious";
     reasonCodes?: string[];
     summary?: string;
     engineVersion?: string;
@@ -188,19 +187,11 @@ function sanitizeEvidence(
 function normalizeModerationFromSkill(skill: SkillModerationShape) {
   const flags = Array.isArray(skill.moderationFlags) ? skill.moderationFlags : [];
   const verdict =
-    skill.moderationVerdict ??
-    (flags.includes("blocked.malware")
-      ? "malicious"
-      : flags.includes("flagged.suspicious")
-        ? "suspicious"
-        : "clean");
+    skill.moderationVerdict ?? (flags.includes("blocked.malware") ? "malicious" : "clean");
   const isMalwareBlocked = verdict === "malicious" || flags.includes("blocked.malware");
-  const isSuspicious =
-    !isMalwareBlocked && (verdict === "suspicious" || flags.includes("flagged.suspicious"));
 
   return {
     isMalwareBlocked,
-    isSuspicious,
     verdict,
     reasonCodes: Array.isArray(skill.moderationReasonCodes) ? skill.moderationReasonCodes : [],
     summary: skill.moderationSummary ?? null,
@@ -467,10 +458,6 @@ export async function searchSkillsV1Handler(ctx: ActionCtx, request: Request) {
   const query = url.searchParams.get("q")?.trim() ?? "";
   const limit = toOptionalNumber(url.searchParams.get("limit"));
   const highlightedOnly = parseBooleanQueryParam(url.searchParams.get("highlightedOnly"));
-  const nonSuspiciousOnly = resolveBooleanQueryParam(
-    url.searchParams.get("nonSuspiciousOnly"),
-    url.searchParams.get("nonSuspicious"),
-  );
 
   if (!query) return json({ results: [] }, 200, rate.headers);
 
@@ -478,7 +465,6 @@ export async function searchSkillsV1Handler(ctx: ActionCtx, request: Request) {
     query,
     limit,
     highlightedOnly: highlightedOnly || undefined,
-    nonSuspiciousOnly: nonSuspiciousOnly || undefined,
   })) as SearchSkillEntry[];
 
   return json(
@@ -580,23 +566,17 @@ export async function listSkillsV1Handler(ctx: ActionCtx, request: Request) {
   const sort = parseListSort(url.searchParams.get("sort"));
   if (!sort) return text("Invalid sort query parameter", 400, rate.headers);
   const cursor = sort === "trending" ? undefined : rawCursor;
-  const nonSuspiciousOnly = resolveBooleanQueryParam(
-    url.searchParams.get("nonSuspiciousOnly"),
-    url.searchParams.get("nonSuspicious"),
-  );
 
   let result: ListSkillsResult;
   if (sort === "trending") {
     result = (await ctx.runQuery(api.skills.listPublicTrendingPage, {
       limit,
-      nonSuspiciousOnly: nonSuspiciousOnly || undefined,
     })) as ListSkillsResult;
   } else {
     const pageResult = (await ctx.runQuery(api.skills.listPublicApiPageV1, {
       cursor,
       numItems: limit,
       sort: toPublicListSort(sort),
-      nonSuspiciousOnly: nonSuspiciousOnly || undefined,
     })) as {
       items?: ListSkillsResult["items"];
       page?: ListSkillsResult["items"];
@@ -781,7 +761,6 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
           : null,
         moderation: result.moderationInfo
           ? {
-              isSuspicious: result.moderationInfo.isSuspicious ?? false,
               isMalwareBlocked: result.moderationInfo.isMalwareBlocked ?? false,
               verdict: result.moderationInfo.verdict ?? "clean",
               reasonCodes: result.moderationInfo.reasonCodes ?? [],
@@ -818,7 +797,6 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
         return json(
           {
             moderation: {
-              isSuspicious: mod.isSuspicious,
               isMalwareBlocked: mod.isMalwareBlocked,
               verdict: mod.verdict,
               reasonCodes: mod.reasonCodes,
@@ -841,7 +819,6 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
       ? normalizeModerationFromSkill(hiddenSkill as SkillModerationShape)
       : result.moderationInfo
         ? {
-            isSuspicious: result.moderationInfo.isSuspicious ?? false,
             isMalwareBlocked: result.moderationInfo.isMalwareBlocked ?? false,
             verdict: result.moderationInfo.verdict ?? "clean",
             reasonCodes: result.moderationInfo.reasonCodes ?? [],
@@ -852,7 +829,7 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
             evidence: [],
           }
         : null;
-    const isFlagged = Boolean(mod?.isSuspicious || mod?.isMalwareBlocked);
+    const isFlagged = Boolean(mod?.isMalwareBlocked);
 
     if (!isOwner && !isStaff && !isFlagged) {
       return text("Moderation details unavailable", 404, rate.headers);
@@ -862,7 +839,6 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
       {
         moderation: mod
           ? {
-              isSuspicious: mod.isSuspicious,
               isMalwareBlocked: mod.isMalwareBlocked,
               verdict: mod.verdict,
               reasonCodes: mod.reasonCodes,
@@ -997,7 +973,6 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
               matchesRequestedVersion: moderationMatchesRequestedVersion,
               isPendingScan: result.moderationInfo.isPendingScan ?? false,
               isMalwareBlocked: result.moderationInfo.isMalwareBlocked ?? false,
-              isSuspicious: result.moderationInfo.isSuspicious ?? false,
               isHiddenByMod: result.moderationInfo.isHiddenByMod ?? false,
               isRemoved: result.moderationInfo.isRemoved ?? false,
             }

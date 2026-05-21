@@ -98,7 +98,6 @@ function makeDigest(
     moderationStatus: "active",
     moderationFlags: [],
     moderationReason: undefined,
-    isSuspicious: false,
     createdAt: 1,
     updatedAt: 1,
     ...overrides,

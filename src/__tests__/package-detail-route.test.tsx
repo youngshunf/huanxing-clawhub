@@ -343,6 +343,8 @@ describe("plugin detail route", () => {
             summary: "Looks safe.",
             checkedAt: 1,
           },
+          clawScanVerdict: "clean",
+          clawScanState: "complete",
           staticScan: {
             status: "clean",
             reasonCodes: [],

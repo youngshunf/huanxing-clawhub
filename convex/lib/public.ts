@@ -28,7 +28,6 @@ export type PublicSkill = Pick<
   | "capabilityTags"
   | "badges"
   | "stats"
-  | "isSuspicious"
   | "createdAt"
   | "updatedAt"
 >;
@@ -65,7 +64,6 @@ export type HydratableSkill = Pick<
   | "moderationStatus"
   | "moderationFlags"
   | "moderationReason"
-  | "isSuspicious"
   | "createdAt"
   | "updatedAt"
 >;
@@ -151,7 +149,6 @@ export function toPublicSkill(skill: HydratableSkill | null | undefined): Public
     capabilityTags: skill.capabilityTags,
     badges: skill.badges,
     stats,
-    isSuspicious: false,
     createdAt: skill.createdAt,
     updatedAt: skill.updatedAt,
   };

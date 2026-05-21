@@ -38,9 +38,8 @@ type SecurityStatus = {
 };
 
 type ModerationStatus = {
-  isSuspicious: boolean;
   isMalwareBlocked: boolean;
-  verdict?: "clean" | "suspicious" | "malicious";
+  verdict?: "clean" | "malicious";
   reasonCodes?: string[];
   updatedAt?: number | null;
   engineVersion?: string | null;
@@ -315,11 +314,7 @@ function printVersionSummary(version: unknown) {
 function printModerationSummary(moderation: unknown) {
   const status = normalizeModeration(moderation);
   if (!status) return;
-  const label = status.isMalwareBlocked
-    ? "MALICIOUS"
-    : status.isSuspicious
-      ? "SUSPICIOUS"
-      : (status.verdict ?? "clean").toUpperCase();
+  const label = status.isMalwareBlocked ? "MALICIOUS" : (status.verdict ?? "clean").toUpperCase();
   console.log(`Moderation: ${label}`);
   if (status.reasonCodes?.length) {
     console.log(`Reasons: ${status.reasonCodes.join(", ")}`);
@@ -346,7 +341,6 @@ function printModerationSummary(moderation: unknown) {
 function normalizeModeration(moderation: unknown): ModerationStatus | null {
   if (!moderation || typeof moderation !== "object") return null;
   const value = moderation as {
-    isSuspicious?: unknown;
     isMalwareBlocked?: unknown;
     verdict?: unknown;
     reasonCodes?: unknown;
@@ -355,17 +349,13 @@ function normalizeModeration(moderation: unknown): ModerationStatus | null {
     summary?: unknown;
     legacyReason?: unknown;
   };
-  if (typeof value.isSuspicious !== "boolean") return null;
   if (typeof value.isMalwareBlocked !== "boolean") return null;
   const verdict =
-    value.verdict === "clean" || value.verdict === "suspicious" || value.verdict === "malicious"
-      ? value.verdict
-      : undefined;
+    value.verdict === "clean" || value.verdict === "malicious" ? value.verdict : undefined;
   const reasonCodes = Array.isArray(value.reasonCodes)
     ? value.reasonCodes.filter((reason): reason is string => typeof reason === "string")
     : undefined;
   return {
-    isSuspicious: value.isSuspicious,
     isMalwareBlocked: value.isMalwareBlocked,
     verdict,
     reasonCodes,

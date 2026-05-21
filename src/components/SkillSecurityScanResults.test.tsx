@@ -405,6 +405,7 @@ describe("SecurityScanResults static guidance", () => {
           version: "1.0.0",
           detailPath: "/local/todo-guard",
         }}
+        clawScanVerdict="warn"
         llmAnalysis={clawScanAnalysis}
         clawScanNote="Publisher says the Todoist token is required for task sync."
       />,
@@ -475,6 +476,7 @@ describe("SecurityScanResults static guidance", () => {
           version: "1.0.0",
           detailPath: "/local/todo-guard",
         }}
+        clawScanVerdict="warn"
         llmAnalysis={clawScanAnalysis}
       />,
     );
@@ -552,6 +554,7 @@ describe("SecurityScanResults static guidance", () => {
           version: "1.0.0",
           detailPath: "/local/todo-guard",
         }}
+        clawScanVerdict="warn"
         llmAnalysis={clawScanAnalysis}
         canManageArtifact
         settingsHref="/local/todo-guard/settings"
@@ -572,6 +575,7 @@ describe("SecurityScanResults static guidance", () => {
         version: "1.0.0",
         detailPath: "/local/todo-guard",
       },
+      clawScanVerdict: "warn",
       llmAnalysis: clawScanAnalysis,
       settingsHref: "/local/todo-guard/settings",
     };
@@ -598,6 +602,7 @@ describe("SecurityScanResults static guidance", () => {
           detailPath: "/plugins/plugin-guard",
         }}
         sha256hash="seeded-plugin-hash"
+        clawScanVerdict="warn"
         llmAnalysis={clawScanAnalysis}
         vtAnalysis={{ status: "clean", checkedAt: 1 }}
       />,
@@ -627,6 +632,7 @@ describe("SecurityScanResults static guidance", () => {
           detailPath: "/local/hash-guard",
         }}
         sha256hash="abc123"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "clean",
           verdict: "benign",
@@ -672,6 +678,7 @@ describe("SecurityScanResults static guidance", () => {
           detailPath: "/local/hash-guard",
         }}
         sha256hash="abc123"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "clean",
           source: "engines",
@@ -777,6 +784,7 @@ describe("SecurityScanResults static guidance", () => {
           detailPath: "/plugins/@opik/opik-openclaw",
         }}
         sha256hash="abc123"
+        clawScanVerdict="clean"
         vtAnalysis={{
           status: "clean",
           verdict: "undetected-only-fallback",
@@ -902,6 +910,7 @@ describe("SecurityScanResults static guidance", () => {
           version: "2.0.0",
           detailPath: "/plugins/plugin-guard",
         }}
+        clawScanVerdict="clean"
         llmAnalysis={legacyClawScanAnalysis}
       />,
     );
@@ -931,6 +940,7 @@ describe("SecurityScanResults static guidance", () => {
           version: "1.0.0",
           detailPath: "/local/legacy-skill",
         }}
+        clawScanVerdict="clean"
         llmAnalysis={legacyClawScanAnalysis}
       />,
     );

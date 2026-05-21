@@ -8,8 +8,7 @@ export type SkillOgMeta = {
     downloads: number;
   };
   moderation: {
-    verdict: "clean" | "suspicious" | "malicious" | null;
-    isSuspicious: boolean;
+    verdict: "clean" | "malicious" | null;
     isMalwareBlocked: boolean;
   } | null;
 };
@@ -24,8 +23,7 @@ export async function fetchSkillOgMeta(slug: string, apiBase: string): Promise<S
       owner?: { handle?: string | null; image?: string | null } | null;
       latestVersion?: { version?: string | null } | null;
       moderation?: {
-        verdict?: "clean" | "suspicious" | "malicious";
-        isSuspicious?: boolean;
+        verdict?: "clean" | "malicious";
         isMalwareBlocked?: boolean;
       } | null;
     };
@@ -42,7 +40,6 @@ export async function fetchSkillOgMeta(slug: string, apiBase: string): Promise<S
       moderation: payload.moderation
         ? {
             verdict: payload.moderation.verdict ?? null,
-            isSuspicious: Boolean(payload.moderation.isSuspicious),
             isMalwareBlocked: Boolean(payload.moderation.isMalwareBlocked),
           }
         : null,

@@ -218,9 +218,8 @@ export declare const ApiV1SkillResponseSchema: import("arktype/internal/variants
         image?: string | null | undefined;
     } | null;
     moderation?: {
-        isSuspicious: boolean;
         isMalwareBlocked: boolean;
-        verdict?: "clean" | "suspicious" | "malicious" | undefined;
+        verdict?: "clean" | "malicious" | undefined;
         reasonCodes?: string[] | undefined;
         updatedAt?: number | null | undefined;
         engineVersion?: string | null | undefined;
@@ -229,9 +228,8 @@ export declare const ApiV1SkillResponseSchema: import("arktype/internal/variants
 }, {}>;
 export declare const ApiV1SkillModerationResponseSchema: import("arktype/internal/variants/object.ts").ObjectType<{
     moderation: {
-        isSuspicious: boolean;
         isMalwareBlocked: boolean;
-        verdict: "clean" | "suspicious" | "malicious";
+        verdict: "clean" | "malicious";
         reasonCodes: string[];
         evidence: {
             code: string;
@@ -381,7 +379,7 @@ export declare const ApiV1SkillVersionListResponseSchema: import("arktype/intern
     nextCursor: string | null;
 }, {}>;
 export declare const SecurityStatusSchema: import("arktype/internal/variants/object.ts").ObjectType<{
-    status: "clean" | "suspicious" | "malicious" | "warn" | "review" | "pending" | "error";
+    status: "clean" | "malicious" | "warn" | "review" | "suspicious" | "pending" | "error";
     hasWarnings: boolean;
     checkedAt: number | null;
     model: string | null;
@@ -395,7 +393,7 @@ export declare const ApiV1SkillVersionResponseSchema: import("arktype/internal/v
         license?: "MIT-0" | null | undefined;
         files?: unknown;
         security?: {
-            status: "clean" | "suspicious" | "malicious" | "warn" | "review" | "pending" | "error";
+            status: "clean" | "malicious" | "warn" | "review" | "suspicious" | "pending" | "error";
             hasWarnings: boolean;
             checkedAt: number | null;
             model: string | null;

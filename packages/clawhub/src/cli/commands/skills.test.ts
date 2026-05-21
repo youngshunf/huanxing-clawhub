@@ -647,7 +647,7 @@ describe("cmdInstall", () => {
       },
       latestVersion: { version: "1.0.0" },
       owner: null,
-      moderation: { isMalwareBlocked: true, isSuspicious: false },
+      moderation: { isMalwareBlocked: true },
     });
 
     await expect(cmdInstall(makeOpts(), "demo", undefined, true)).rejects.toThrow(/malware/i);

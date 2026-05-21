@@ -1199,9 +1199,6 @@
               "null"
             ],
             "properties": {
-              "isSuspicious": {
-                "type": "boolean"
-              },
               "isMalwareBlocked": {
                 "type": "boolean"
               },
@@ -1209,7 +1206,6 @@
                 "type": "string",
                 "enum": [
                   "clean",
-                  "suspicious",
                   "malicious"
                 ]
               },
@@ -1310,9 +1306,6 @@
                 "type": "boolean"
               },
               "isMalwareBlocked": {
-                "type": "boolean"
-              },
-              "isSuspicious": {
                 "type": "boolean"
               },
               "isHiddenByMod": {
@@ -3015,23 +3008,6 @@
             "schema": {
               "type": "boolean"
             }
-          },
-          {
-            "name": "nonSuspiciousOnly",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "name": "nonSuspicious",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Legacy alias for nonSuspiciousOnly."
           }
         ],
         "responses": {
@@ -3088,24 +3064,6 @@
                 "trending"
               ]
             }
-          },
-          {
-            "name": "nonSuspiciousOnly",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Hide suspicious skills. For cursor-based sorts, pages may contain fewer than limit items because filtering happens after page retrieval."
-          },
-          {
-            "name": "nonSuspicious",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Legacy alias for nonSuspiciousOnly."
           }
         ],
         "responses": {
@@ -3399,9 +3357,6 @@
                         "null"
                       ],
                       "properties": {
-                        "isSuspicious": {
-                          "type": "boolean"
-                        },
                         "isMalwareBlocked": {
                           "type": "boolean"
                         },
@@ -3409,7 +3364,6 @@
                           "type": "string",
                           "enum": [
                             "clean",
-                            "suspicious",
                             "malicious"
                           ]
                         },

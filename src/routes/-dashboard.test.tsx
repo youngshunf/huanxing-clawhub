@@ -101,9 +101,8 @@ type TestSkill = {
     stars: number;
     versions: number;
   };
-  moderationVerdict?: "suspicious" | "malicious";
+  moderationVerdict?: "clean" | "malicious";
   moderationFlags?: string[];
-  isSuspicious?: boolean;
   createdAt: number;
   updatedAt: number;
   latestVersion: {
@@ -112,6 +111,8 @@ type TestSkill = {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: "clean" | "suspicious" | "malicious" | null;
+    clawScanVerdict?: "clean" | "review" | "warn" | "malicious" | null;
+    clawScanState?: "pending" | "running" | "complete" | "error" | null;
   };
 };
 
@@ -141,6 +142,8 @@ type TestPackage = {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: "clean" | "suspicious" | "malicious" | null;
+    clawScanVerdict?: "clean" | "review" | "warn" | "malicious" | null;
+    clawScanState?: "pending" | "running" | "complete" | "error" | null;
   };
 };
 
@@ -178,9 +181,8 @@ function createSkill(overrides?: Partial<TestSkill>): TestSkill {
     tags: {},
     badges: {},
     stats: { downloads: 1_234, installsCurrent: 12, installsAllTime: 56, stars: 7, versions: 3 },
-    moderationVerdict: "suspicious",
-    moderationFlags: ["flagged.suspicious"],
-    isSuspicious: true,
+    moderationVerdict: "clean",
+    moderationFlags: [],
     createdAt: 1,
     updatedAt: 1,
     latestVersion: {
@@ -189,6 +191,8 @@ function createSkill(overrides?: Partial<TestSkill>): TestSkill {
       vtStatus: "suspicious",
       llmStatus: "suspicious",
       staticScanStatus: "suspicious",
+      clawScanVerdict: "review",
+      clawScanState: "complete",
     },
     ...overrides,
   };
@@ -216,6 +220,8 @@ function createPackage(overrides?: Partial<TestPackage>): TestPackage {
       vtStatus: "malicious",
       llmStatus: "malicious",
       staticScanStatus: "malicious",
+      clawScanVerdict: "malicious",
+      clawScanState: "complete",
     },
     ...overrides,
   };

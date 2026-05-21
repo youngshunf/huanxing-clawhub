@@ -1279,7 +1279,7 @@ export const rescanActiveSkills = internalAction({
       `[vt:rescan] Processing batch of ${batch.skills.length} skills (cursor=${cursor}, accumulated=${accTotal})`,
     );
 
-    for (const { versionId, sha256hash, slug, wasFlagged } of batch.skills) {
+    for (const { versionId, sha256hash, slug } of batch.skills) {
       try {
         const vtResult = await checkExistingFile(apiKey, sha256hash);
 
@@ -1318,10 +1318,6 @@ export const rescanActiveSkills = internalAction({
         if (status === "malicious" || status === "suspicious") {
           console.warn(`[vt:rescan] ${slug}: verdict changed to ${status}!`);
           accFlaggedSkills.push({ slug, status });
-          await enqueueSkillCodexForVtSignal(ctx, versionId);
-          accUpdated++;
-        } else if (wasFlagged && status === "clean") {
-          console.log(`[vt:rescan] ${slug}: VT verdict improved to clean`);
           await enqueueSkillCodexForVtSignal(ctx, versionId);
           accUpdated++;
         } else {

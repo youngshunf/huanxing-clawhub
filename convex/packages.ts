@@ -458,13 +458,7 @@ function shouldIncludeReleaseInModerationQueue(
     return manualState === "quarantined" || manualState === "revoked" || scanStatus === "malicious";
   }
   if (status === "all") return Boolean(manualState) || scanStatus !== "clean";
-  return (
-    manualState === "quarantined" ||
-    manualState === "revoked" ||
-    scanStatus === "suspicious" ||
-    scanStatus === "malicious" ||
-    scanStatus === "pending"
-  );
+  return manualState === "quarantined" || manualState === "revoked" || scanStatus === "malicious";
 }
 
 function getPackageReleaseCreatedAt(release: PackageReleaseModerationQueueDoc) {
@@ -625,6 +619,8 @@ type DashboardPackageListItem = {
     vtStatus: string | null;
     llmStatus: string | null;
     staticScanStatus: "clean" | "suspicious" | "malicious" | null;
+    clawScanVerdict?: Doc<"packageReleases">["clawScanVerdict"];
+    clawScanState?: Doc<"packageReleases">["clawScanState"];
   } | null;
 };
 
@@ -935,6 +931,8 @@ async function toDashboardPackageListItem(
             vtStatus: latestRelease.vtAnalysis?.status ?? null,
             llmStatus: latestRelease.llmAnalysis?.status ?? null,
             staticScanStatus: latestRelease.staticScan?.status ?? null,
+            clawScanVerdict: latestRelease.clawScanVerdict,
+            clawScanState: latestRelease.clawScanState,
           }
         : null,
   };
@@ -3785,7 +3783,6 @@ export const submitPackageAppealForUserInternal = internalMutation({
     const isAppealable =
       moderationState === "quarantined" ||
       moderationState === "revoked" ||
-      scanStatus === "suspicious" ||
       scanStatus === "malicious";
     if (!isAppealable) throw new ConvexError("Package release is not in an appealable state");
 
@@ -5750,161 +5747,6 @@ export const updateReleaseLlmAnalysisInternal = internalMutation({
       ...patch,
     } as Doc<"packageReleases">;
     await syncLatestPackageVerification(ctx, updatedRelease);
-  },
-});
-
-function isLegacySuspiciousScanValue(value: string | null | undefined) {
-  return value?.trim().toLowerCase() === "suspicious";
-}
-
-function packageHasLegacySuspiciousScanSignal(pkg: Doc<"packages">) {
-  return (
-    isLegacySuspiciousScanValue(pkg.scanStatus) ||
-    isLegacySuspiciousScanValue(pkg.verification?.scanStatus) ||
-    isLegacySuspiciousScanValue(pkg.latestVersionSummary?.verification?.scanStatus)
-  );
-}
-
-function releaseHasLegacySuspiciousScanSignal(release: Doc<"packageReleases">) {
-  return (
-    isLegacySuspiciousScanValue(release.verification?.scanStatus) ||
-    isLegacySuspiciousScanValue(release.llmAnalysis?.status) ||
-    isLegacySuspiciousScanValue(release.llmAnalysis?.verdict) ||
-    isLegacySuspiciousScanValue(release.vtAnalysis?.status) ||
-    isLegacySuspiciousScanValue(release.vtAnalysis?.verdict)
-  );
-}
-
-export const getSuspiciousPluginReleaseBatchForLlmRescanInternal = internalQuery({
-  args: {
-    cursor: v.optional(v.union(v.string(), v.null())),
-    batchSize: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const batchSize = Math.max(1, Math.min(Math.floor(args.batchSize ?? 100), 200));
-    const { page, continueCursor, isDone } = await ctx.db
-      .query("packages")
-      .withIndex("by_active_updated", (q) => q.eq("softDeletedAt", undefined))
-      .order("asc")
-      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
-
-    const releases: Array<{
-      packageId: Id<"packages">;
-      releaseId: Id<"packageReleases">;
-      name: string;
-      family: PackageFamily;
-    }> = [];
-
-    for (const pkg of page) {
-      if (pkg.family === "skill") continue;
-      if (!pkg.latestReleaseId) continue;
-      const release = await ctx.db.get(pkg.latestReleaseId);
-      if (!isReleaseActive(release)) continue;
-      if (release.manualModeration?.state === "quarantined") continue;
-      if (release.manualModeration?.state === "revoked") continue;
-      if (resolvePackageReleaseScanStatus(release) === "malicious") continue;
-      if (
-        !packageHasLegacySuspiciousScanSignal(pkg) &&
-        !releaseHasLegacySuspiciousScanSignal(release)
-      ) {
-        continue;
-      }
-
-      releases.push({
-        packageId: pkg._id,
-        releaseId: release._id,
-        name: pkg.normalizedName,
-        family: pkg.family,
-      });
-    }
-
-    return {
-      releases,
-      examined: page.length,
-      continueCursor,
-      isDone,
-    };
-  },
-});
-
-export const getPluginScanStatusCountPageInternal = internalQuery({
-  args: {
-    cursor: v.optional(v.union(v.string(), v.null())),
-    batchSize: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
-    const batchSize = Math.max(1, Math.min(Math.floor(args.batchSize ?? 200), 200));
-    const { page, continueCursor, isDone } = await ctx.db
-      .query("packages")
-      .withIndex("by_active_updated", (q) => q.eq("softDeletedAt", undefined))
-      .order("asc")
-      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
-
-    let activePlugins = 0;
-    let clean = 0;
-    let pending = 0;
-    let notRun = 0;
-    let suspicious = 0;
-    let malicious = 0;
-    let unknown = 0;
-    let latestSuspicious = 0;
-    let latestMalicious = 0;
-    let latestBlocked = 0;
-
-    for (const pkg of page) {
-      if (pkg.family === "skill") continue;
-      activePlugins++;
-
-      switch (pkg.scanStatus) {
-        case "clean":
-          clean++;
-          break;
-        case "pending":
-          pending++;
-          break;
-        case "not-run":
-          notRun++;
-          break;
-        case "suspicious":
-          suspicious++;
-          break;
-        case "malicious":
-          malicious++;
-          break;
-        default:
-          unknown++;
-      }
-
-      if (!pkg.latestReleaseId) continue;
-      const release = await ctx.db.get(pkg.latestReleaseId);
-      if (!isReleaseActive(release)) continue;
-      if (
-        release.manualModeration?.state === "quarantined" ||
-        release.manualModeration?.state === "revoked"
-      ) {
-        latestBlocked++;
-        continue;
-      }
-      const latestStatus = resolvePackageReleaseScanStatus(release);
-      if (latestStatus === "suspicious") latestSuspicious++;
-      if (latestStatus === "malicious") latestMalicious++;
-    }
-
-    return {
-      examined: page.length,
-      activePlugins,
-      clean,
-      pending,
-      notRun,
-      suspicious,
-      malicious,
-      unknown,
-      latestSuspicious,
-      latestMalicious,
-      latestBlocked,
-      continueCursor,
-      isDone,
-    };
   },
 });
 

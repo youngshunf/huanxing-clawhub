@@ -84,7 +84,7 @@ describe("skills moderation holds", () => {
           ownerUserId: "users:owner",
           moderationStatus: "hidden",
           moderationReason: "manual.report",
-          moderationVerdict: "suspicious",
+          moderationVerdict: "clean",
           moderationFlags: undefined,
           softDeletedAt: undefined,
         },
