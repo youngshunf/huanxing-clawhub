@@ -1930,6 +1930,20 @@ const skillOwnershipTransfers = defineTable({
   .index("by_from_user_status", ["fromUserId", "status"])
   .index("by_skill_status", ["skillId", "status"]);
 
+const loginTokens = defineTable({
+  token: v.string(),
+  userId: v.id("users"),
+  huanxingUserId: v.number(),
+  expiresAt: v.number(),
+  used: v.boolean(),
+  usedAt: v.optional(v.number()),
+  createdAt: v.number(),
+})
+  .index("by_token", ["token"])
+  .index("by_user", ["userId"])
+  .index("by_huanxing_user", ["huanxingUserId"])
+  .index("by_expiry", ["expiresAt", "used"]);
+
 export default defineSchema({
   ...authTables,
   users,
@@ -1990,4 +2004,5 @@ export default defineSchema({
   userSkillInstalls,
   userSkillRootInstalls,
   skillOwnershipTransfers,
+  loginTokens,
 });
